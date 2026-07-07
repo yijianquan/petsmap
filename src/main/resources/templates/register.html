@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>吾家有宠 - 注册</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="login-page">
+<main class="login-shell">
+    <section class="login-panel">
+        <div>
+            <p class="eyebrow">创建账号</p>
+            <h1>开始记录家里的小朋友</h1>
+            <p class="muted">注册后可以管理自己的宠物档案、日历提醒和地点收藏。</p>
+        </div>
+        <form th:action="@{/register}" method="post" class="form-stack">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label>
+                用户名
+                <input name="username" type="text" autocomplete="username" th:value="${username}" required autofocus>
+            </label>
+            <label>
+                密码
+                <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+            </label>
+            <label>
+                确认密码
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
+            </label>
+            <p class="alert error" th:if="${error}" th:text="${error}">注册失败</p>
+            <button class="primary-button" type="submit">注册</button>
+            <a class="auth-link" th:href="@{/login}">已有账号？登录</a>
+        </form>
+    </section>
+</main>
+</body>
+</html>

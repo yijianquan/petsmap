@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>吾家有宠 - 问答</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}">吾家有宠</a>
+    <nav>
+        <a th:href="@{/}">宠物</a>
+        <a th:href="@{/calendar}">日历</a>
+        <a th:href="@{/places}">地图</a>
+        <a class="active" th:href="@{/qa}">问答</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="ghost-button" type="submit">退出</button>
+    </form>
+</header>
+
+<main class="page qa-page">
+    <section class="qa-shell">
+        <div class="qa-thread" id="qaThread">
+            <div class="qa-message ai">
+                <strong>宠物问答</strong>
+                <p>可以问我疫苗、洗澡、驱虫、饮食、异常症状等问题。紧急症状请优先联系宠物医院。</p>
+            </div>
+        </div>
+        <form class="qa-composer" id="qaForm">
+            <input type="hidden" id="csrfHeader" th:value="${_csrf.headerName}">
+            <input type="hidden" id="csrfToken" th:value="${_csrf.token}">
+            <textarea id="questionInput" rows="3" placeholder="例如：猫咪今天吐了两次，需要马上去医院吗？" required></textarea>
+            <button class="primary-button" type="submit">发送</button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const qaForm = document.getElementById("qaForm");
+    const questionInput = document.getElementById("questionInput");
+    const qaThread = document.getElementById("qaThread");
+    const csrfHeader = document.getElementById("csrfHeader").value;
+    const csrfToken = document.getElementById("csrfToken").value;
+
+    qaForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const question = questionInput.value.trim();
+        if (!question) {
+            return;
+        }
+        appendMessage("user", question);
+        questionInput.value = "";
+        const thinking = appendMessage("ai", "正在整理建议...");
+        try {
+            const response = await fetch("/qa/ask", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify({question})
+            });
+            const data = await response.json();
+            thinking.querySelector("p").textContent = data.answer || "暂时没有生成回答。";
+        } catch (error) {
+            thinking.querySelector("p").textContent = "问答服务暂时不可用，请稍后再试。";
+        }
+    });
+
+    function appendMessage(role, text) {
+        const message = document.createElement("div");
+        message.className = `qa-message ${role}`;
+        message.innerHTML = `<p>${escapeHtml(text)}</p>`;
+        qaThread.appendChild(message);
+        qaThread.scrollTop = qaThread.scrollHeight;
+        return message;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+</script>
+</body>
+</html>

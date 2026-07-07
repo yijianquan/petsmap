@@ -1,0 +1,12 @@
+package com.wujia.pet;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class WuJiaYouChongApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+}

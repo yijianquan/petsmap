@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/wu_jia_you_chong?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    username: root
+    password: mysql_XHZW@2021
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  session:
+    store-type: redis
+    timeout: 7d
+    redis:
+      namespace: wu-jia-you-chong:session
+
+app:
+  map:
+    default-city: 上海
+    amap-key: b68a6ba42bd364522ef0656edfc98913

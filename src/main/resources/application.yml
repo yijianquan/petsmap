@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: wu-jia-you-chong
+  datasource:
+    url: jdbc:mysql://localhost:3306/wu_jia_you_chong?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    username: root
+    password: mysql_XHZW@2021
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+  session:
+    store-type: redis
+    timeout: 7d
+    redis:
+      namespace: wu-jia-you-chong:session
+  thymeleaf:
+    cache: false
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        name: WJYC_SESSION
+        max-age: 7d
+        http-only: true
+        same-site: lax
+
+app:
+  bootstrap:
+    enabled: true
+    admin-username: admin
+    admin-password: admin123
+  ai:
+    api-key: sk-vkcnicaqbyszneascfghmohoswwwajzdbthiwgytmxgxljks
+  map:
+    default-city: 上海
+    # 填入高德 Web 服务 Key 后，地点联想会优先调用高德；不填则使用 OpenStreetMap Nominatim 兜底。
+    amap-key: b68a6ba42bd364522ef0656edfc98913

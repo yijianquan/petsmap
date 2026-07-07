@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>吾家有宠 - 地图</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/}">吾家有宠</a>
+    <nav>
+        <a th:href="@{/}">宠物</a>
+        <a th:href="@{/calendar}">日历</a>
+        <a class="active" th:href="@{/places}">地图</a>
+        <a th:href="@{/qa}">问答</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="ghost-button" type="submit">退出</button>
+    </form>
+</header>
+
+<main class="page">
+    <div class="modal-backdrop" id="errorModal" th:classappend="${errorMessage} ? '' : ' hidden'">
+        <section class="modal-panel small-modal" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle">
+            <div class="modal-header">
+                <h2 id="errorTitle">操作没有完成</h2>
+                <button class="modal-close" type="button" data-close-modal="errorModal" aria-label="关闭">×</button>
+            </div>
+            <div class="modal-body">
+                <p th:text="${errorMessage}">请稍后再试。</p>
+            </div>
+        </section>
+    </div>
+
+    <section class="map-panel">
+        <div class="map-header-row">
+            <div>
+                <strong>附近宠物友好地点</strong>
+                <span class="map-status" id="mapStatus">正在获取定位并计算推荐...</span>
+            </div>
+            <button class="small-action-button" id="toggleMapButton" type="button">展开地图</button>
+        </div>
+        <div class="map-tools">
+            <div class="tag-filter-dropdown" id="tagFilterDropdown">
+                <button class="small-action-button tag-filter-trigger" id="tagFilterTrigger" type="button">全部标签</button>
+                <div class="tag-filter-menu hidden" id="tagFilterMenu">
+                    <label class="tag-filter-search">
+                        标签筛选
+                        <input id="tagFilterSearchInput" type="text" placeholder="搜索标签">
+                    </label>
+                    <div class="tag-filter-actions">
+                        <button class="small-action-button" id="selectAllTagFilters" type="button">全选</button>
+                        <button class="small-action-button" id="clearTagFilters" type="button">清空</button>
+                    </div>
+                    <div class="tag-filter-options" id="tagFilterOptions"></div>
+                </div>
+            </div>
+            <div class="map-search-group">
+                <input id="mapSearchInput" type="text" placeholder="搜索已有地点：名称、地址、说明">
+                <button class="primary-button compact-primary-button" id="mapSearchButton" type="button">筛选</button>
+                <button class="small-action-button" id="clearMapSearchButton" type="button">清空</button>
+            </div>
+            <div class="filter-group">
+                <button class="filter-button active" type="button" data-filter="ALL">全部</button>
+                <button class="filter-button" th:each="type : ${placeTypes}" type="button" th:data-filter="${type}" th:text="${type.displayName}">类型</button>
+            </div>
+            <div class="map-action-group">
+                <button class="small-action-button" id="recommendSortButton" type="button">附近推荐</button>
+                <button class="small-action-button" id="openPlaceModalButton" type="button">+ 上传地点</button>
+            </div>
+        </div>
+        <div class="map-wrap collapsed" id="mapWrap">
+            <div id="petMap" class="map"></div>
+        </div>
+    </section>
+
+    <div class="modal-backdrop hidden" id="placeModal">
+        <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="placeFormTitle">
+            <div class="modal-header">
+                <h2 id="placeFormTitle">上传地点</h2>
+                <button class="modal-close" type="button" data-close-modal="placeModal" aria-label="关闭">×</button>
+            </div>
+            <form id="placeForm" th:action="@{/places}" th:object="${place}" method="post" class="form-stack">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <label>
+                    名称
+                    <input id="placeName" th:field="*{name}" type="text" placeholder="例如：中央公园草坪区" required>
+                </label>
+                <div class="action-row compact-left">
+                    <button class="small-action-button" id="searchPlaceButton" type="button">搜索选址</button>
+                </div>
+                <div class="suggestion-box hidden" id="placeSuggestions"></div>
+                <label>
+                    搜索城市
+                    <input id="searchCity" type="text" value="上海" placeholder="例如：上海、北京、杭州">
+                </label>
+                <label>
+                    类型
+                    <select id="placeType" th:field="*{type}">
+                        <option th:each="type : ${placeTypes}" th:value="${type}" th:text="${type.displayName}"></option>
+                    </select>
+                </label>
+                <input id="placeTags" th:field="*{tags}" type="hidden">
+                <input id="indoorAllowed" th:field="*{indoorAllowed}" type="hidden">
+                <input id="largeDogFriendly" th:field="*{largeDogFriendly}" type="hidden">
+                <input id="catFriendly" th:field="*{catFriendly}" type="hidden">
+                <input id="leashRequired" th:field="*{leashRequired}" type="hidden">
+                <input id="waterAvailable" th:field="*{waterAvailable}" type="hidden">
+                <input id="parkingAvailable" th:field="*{parkingAvailable}" type="hidden">
+                <input id="feeRequired" th:field="*{feeRequired}" type="hidden">
+                <div class="tag-picker">
+                    <label>
+                        公共标签
+                        <input id="tagSearchInput" type="text" placeholder="搜索标签：停车、饮水、室内可进、大狗友好、环境安静...">
+                    </label>
+                    <div class="selected-tag-list" id="selectedTagList"></div>
+                    <div class="tag-palette" id="tagPalette"></div>
+                </div>
+                <label>
+                    地址
+                    <input id="placeAddress" th:field="*{address}" type="text" placeholder="城市、街道、入口">
+                </label>
+                <div class="two-cols">
+                    <label>
+                        纬度
+                        <input id="placeLatitude" th:field="*{latitude}" type="text" inputmode="decimal">
+                    </label>
+                    <label>
+                        经度
+                        <input id="placeLongitude" th:field="*{longitude}" type="text" inputmode="decimal">
+                    </label>
+                </div>
+                <label>
+                    规则备注
+                    <textarea id="policyNote" th:field="*{policyNote}" rows="3" maxlength="500" placeholder="例如：仅限外摆区、需宠物包、节假日人多、草坪开放时段、是否需要提前电话确认"></textarea>
+                </label>
+                <label>
+                    说明
+                    <textarea th:field="*{description}" rows="4" placeholder="停车、牵引、是否可进店、营业时间等"></textarea>
+                </label>
+                <div class="action-row split-actions">
+                    <button class="ghost-button" id="resetPlaceFormButton" type="button">新增模式</button>
+                    <button class="primary-button" id="savePlaceButton" type="submit">提交地点</button>
+                </div>
+            </form>
+            <form id="deletePlaceForm" method="post" class="delete-form hidden">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="danger-button" type="submit" onclick="return confirm('确定删除这个地点吗？')">删除当前地点</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="single-column">
+        <div class="place-list categorized-list" id="placeList">
+            <article class="place-card"
+                     th:each="item : ${places}"
+                     th:data-id="${item.id}"
+                     th:data-type="${item.type}"
+                     th:data-lat="${item.latitude}"
+                     th:data-lng="${item.longitude}"
+                     th:data-indoor-allowed="${item.indoorAllowed}"
+                     th:data-large-dog-friendly="${item.largeDogFriendly}"
+                     th:data-cat-friendly="${item.catFriendly}"
+                     th:data-leash-required="${item.leashRequired}"
+                     th:data-water-available="${item.waterAvailable}"
+                     th:data-parking-available="${item.parkingAvailable}"
+                     th:data-fee-required="${item.feeRequired}"
+                     th:data-tags="${item.tags}"
+                     th:with="placeComments=${commentsByPlaceId[item.id]}">
+                <div>
+                    <span class="tag" th:text="${item.type.displayName}">宠物友好酒店</span>
+                    <h2 th:text="${item.name}">地点</h2>
+                    <p class="rating-summary">
+                        <span class="stars">★</span>
+                        <strong th:text="${item.ratingText}">4.8</strong>
+                        <span class="muted"> · <span th:text="${item.commentCount}">12</span> 条评论</span>
+                    </p>
+                    <div class="feature-chip-list">
+                        <span class="feature-chip" th:each="tag : ${item.tagList}" th:text="${tag}">标签</span>
+                        <span class="feature-chip" th:if="${item.indoorAllowed}">室内可进</span>
+                        <span class="feature-chip" th:if="${item.largeDogFriendly}">大狗友好</span>
+                        <span class="feature-chip" th:if="${item.catFriendly}">可带猫</span>
+                        <span class="feature-chip caution" th:if="${item.leashRequired}">需牵引</span>
+                        <span class="feature-chip" th:if="${item.waterAvailable}">饮水点</span>
+                        <span class="feature-chip" th:if="${item.parkingAvailable}">停车</span>
+                        <span class="feature-chip caution" th:if="${item.feeRequired}">收费</span>
+                    </div>
+                    <p th:text="${item.address}">地址</p>
+                    <p class="distance-text" th:if="${item.latitude != null and item.longitude != null}">等待定位计算距离</p>
+                    <p class="policy-note" th:if="${item.policyNote != null and !#strings.isEmpty(item.policyNote)}" th:text="${item.policyNote}">规则备注</p>
+                    <p class="muted" th:text="${item.description}">说明</p>
+                    <details class="comment-box">
+                        <summary>评论与评分</summary>
+                        <div class="comment-list">
+                            <article class="comment-item" th:each="comment : ${placeComments}">
+                                <div class="comment-meta">
+                                    <strong th:text="${comment.user.username}">用户</strong>
+                                    <span class="stars" th:text="${comment.stars}">★★★★★</span>
+                                    <span class="muted" th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-07-07 12:00</span>
+                                </div>
+                                <p th:text="${comment.content}">这里很适合遛狗。</p>
+                                <img class="comment-image"
+                                     th:if="${comment.hasImage()}"
+                                     th:src="@{/places/comments/{id}/image(id=${comment.id})}"
+                                     alt="">
+                                <details class="comment-edit-box"
+                                         th:if="${comment.user.username == currentUsername or currentUserAdmin}">
+                                    <summary>编辑</summary>
+                                    <form class="comment-form compact-comment-form"
+                                          th:action="@{/places/comments/{id}/edit(id=${comment.id})}"
+                                          method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <label>
+                                            评分
+                                            <select name="rating" required>
+                                                <option th:each="score : ${#numbers.sequence(5,1)}"
+                                                        th:value="${score}"
+                                                        th:selected="${score == comment.rating}"
+                                                        th:text="${score + '分'}">5分</option>
+                                            </select>
+                                        </label>
+                                        <label>
+                                            评论
+                                            <textarea name="content" rows="3" maxlength="500" th:text="${comment.content}" required></textarea>
+                                        </label>
+                                        <button class="primary-button compact-primary-button" type="submit">保存评论</button>
+                                    </form>
+                                </details>
+                            </article>
+                            <div class="empty" th:if="${#lists.isEmpty(placeComments)}">还没有评论，来写第一条体验吧。</div>
+                        </div>
+                        <form class="comment-form"
+                              th:action="@{/places/{id}/comments(id=${item.id})}"
+                              method="post"
+                              enctype="multipart/form-data">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <label>
+                                评分
+                                <select name="rating" required>
+                                    <option value="5">★★★★★ 5分</option>
+                                    <option value="4">★★★★☆ 4分</option>
+                                    <option value="3">★★★☆☆ 3分</option>
+                                    <option value="2">★★☆☆☆ 2分</option>
+                                    <option value="1">★☆☆☆☆ 1分</option>
+                                </select>
+                            </label>
+                            <label>
+                                评论
+                                <textarea name="content" rows="3" maxlength="500" placeholder="例如：草坪大小、是否需要牵引、停车、店员态度、宠物限制..." required></textarea>
+                            </label>
+                            <label>
+                                上传图片
+                                <input name="imageFile" type="file" accept="image/*">
+                            </label>
+                            <button class="primary-button" type="submit">提交评论</button>
+                        </form>
+                    </details>
+                </div>
+                <div class="place-actions">
+                    <button class="map-link focus-place-button"
+                            th:if="${item.latitude != null and item.longitude != null}"
+                            type="button"
+                            th:data-id="${item.id}">地图查看</button>
+                    <button class="map-link edit-place-button"
+                            type="button"
+                            th:data-id="${item.id}">编辑</button>
+                    <form th:action="@{/places/{id}/delete(id=${item.id})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="danger-button" type="submit" onclick="return confirm('确定删除这个地点吗？')">删除</button>
+                    </form>
+                </div>
+            </article>
+            <div class="empty" th:if="${#lists.isEmpty(places)}">暂无地点，上传一个常去的宠物友好地点吧。</div>
+        </div>
+    </section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:inline="javascript">
+    const places = /*[[${places}]]*/ [];
+    const map = L.map("petMap").setView([31.2304, 121.4737], 11);
+    const statusEl = document.getElementById("mapStatus");
+    const placeList = document.getElementById("placeList");
+    const latInput = document.getElementById("placeLatitude");
+    const lngInput = document.getElementById("placeLongitude");
+    const addressInput = document.getElementById("placeAddress");
+    const nameInput = document.getElementById("placeName");
+    const cityInput = document.getElementById("searchCity");
+    const typeInput = document.getElementById("placeType");
+    const descriptionInput = document.getElementById("description");
+    const policyNoteInput = document.getElementById("policyNote");
+    const suggestionsEl = document.getElementById("placeSuggestions");
+    const mapSearchInput = document.getElementById("mapSearchInput");
+    const mapSearchButton = document.getElementById("mapSearchButton");
+    const tagOptions = /*[[${placeTags}]]*/ [];
+    const recommendedTags = /*[[${recommendedTags}]]*/ [];
+    const tagsInput = document.getElementById("placeTags");
+    const tagSearchInput = document.getElementById("tagSearchInput");
+    const tagPalette = document.getElementById("tagPalette");
+    const selectedTagList = document.getElementById("selectedTagList");
+    const selectedTags = new Set();
+    const tagFilterTrigger = document.getElementById("tagFilterTrigger");
+    const tagFilterMenu = document.getElementById("tagFilterMenu");
+    const tagFilterOptions = document.getElementById("tagFilterOptions");
+    const tagFilterSearchInput = document.getElementById("tagFilterSearchInput");
+    const selectedFilterTags = new Set(tagOptions);
+    const featureInputs = ["indoorAllowed", "largeDogFriendly", "catFriendly", "leashRequired", "waterAvailable", "parkingAvailable", "feeRequired"]
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+    const placeForm = document.getElementById("placeForm");
+    const deletePlaceForm = document.getElementById("deletePlaceForm");
+    const placeFormTitle = document.getElementById("placeFormTitle");
+    const savePlaceButton = document.getElementById("savePlaceButton");
+    const placeModal = document.getElementById("placeModal");
+    const mapWrap = document.getElementById("mapWrap");
+    const toggleMapButton = document.getElementById("toggleMapButton");
+    const bounds = [];
+    const markerById = new Map();
+    const placeById = new Map();
+    let selectedMarker;
+    let activeFilter = "ALL";
+    let activeSearchKeyword = "";
+    let searchTimer;
+    const defaultLocation = {lat: 31.2304, lng: 121.4737, name: "默认位置：上海"};
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    places.forEach((place) => {
+        placeById.set(String(place.id), place);
+        if (place.latitude == null || place.longitude == null) {
+            return;
+        }
+        const marker = L.marker([place.latitude, place.longitude])
+            .addTo(map)
+            .bindPopup(placePopupHtml(place));
+        marker.placeId = String(place.id);
+        marker.placeType = place.type;
+        markerById.set(String(place.id), marker);
+        bounds.push([place.latitude, place.longitude]);
+    });
+
+    if (bounds.length > 0) {
+        map.fitBounds(bounds, {padding: [28, 28], maxZoom: 14});
+    }
+    renderTagPalette();
+    renderTagFilterOptions();
+    updateTagFilterSummary();
+    autoLocateAndRecommend();
+
+    map.on("click", (event) => {
+        resetPlaceForm();
+        const lat = formatCoordinate(event.latlng.lat);
+        const lng = formatCoordinate(event.latlng.lng);
+        latInput.value = lat;
+        lngInput.value = lng;
+        if (!addressInput.value) {
+            addressInput.value = `地图选点：${lat}, ${lng}`;
+        }
+        if (selectedMarker) {
+            selectedMarker.setLatLng(event.latlng);
+        } else {
+            selectedMarker = L.marker(event.latlng, {draggable: true}).addTo(map);
+            selectedMarker.on("dragend", syncSelectedMarker);
+        }
+        selectedMarker.bindPopup(`已选点<br>${lat}, ${lng}`).openPopup();
+        openModal(placeModal);
+        nameInput.focus();
+        statusEl.textContent = "已选点，可提交。";
+    });
+
+    toggleMapButton.addEventListener("click", () => {
+        const collapsed = mapWrap.classList.toggle("collapsed");
+        toggleMapButton.textContent = collapsed ? "展开地图" : "收起地图";
+        if (!collapsed) {
+            setTimeout(() => map.invalidateSize(), 120);
+        }
+    });
+
+    document.getElementById("recommendSortButton").addEventListener("click", () => {
+        autoLocateAndRecommend();
+    });
+
+    document.getElementById("openPlaceModalButton").addEventListener("click", () => {
+        resetPlaceForm();
+        openModal(placeModal);
+    });
+    document.getElementById("resetPlaceFormButton").addEventListener("click", resetPlaceForm);
+    mapSearchButton.addEventListener("click", () => applyExistingPlaceSearch());
+    document.getElementById("clearMapSearchButton").addEventListener("click", () => {
+        mapSearchInput.value = "";
+        activeSearchKeyword = "";
+        applyFilter();
+    });
+    document.getElementById("searchPlaceButton").addEventListener("click", () => {
+        const keyword = nameInput.value.trim();
+        if (!keyword) {
+            nameInput.focus();
+            statusEl.textContent = "先输入地点名称。";
+            return;
+        }
+        searchPlaceSuggestions(keyword);
+    });
+    mapSearchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            applyExistingPlaceSearch();
+        }
+    });
+    tagSearchInput.addEventListener("input", renderTagPalette);
+    placeForm.addEventListener("submit", syncTagsBeforeSubmit);
+    tagFilterTrigger.addEventListener("click", () => {
+        tagFilterMenu.classList.toggle("hidden");
+        tagFilterSearchInput.focus();
+    });
+    tagFilterSearchInput.addEventListener("input", renderTagFilterOptions);
+    document.getElementById("selectAllTagFilters").addEventListener("click", () => {
+        selectedFilterTags.clear();
+        tagOptions.forEach((tag) => selectedFilterTags.add(tag));
+        renderTagFilterOptions();
+        updateTagFilterSummary();
+        applyFilter();
+    });
+    document.getElementById("clearTagFilters").addEventListener("click", () => {
+        selectedFilterTags.clear();
+        renderTagFilterOptions();
+        updateTagFilterSummary();
+        applyFilter();
+    });
+    document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => closeModal(document.getElementById(button.dataset.closeModal)));
+    });
+    placeModal.addEventListener("click", (event) => {
+        if (event.target === placeModal) {
+            closeModal(placeModal);
+        }
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !placeModal.classList.contains("hidden")) {
+            closeModal(placeModal);
+        }
+    });
+
+    nameInput.addEventListener("input", () => {
+        clearTimeout(searchTimer);
+        const keyword = nameInput.value.trim();
+        if (keyword.length < 1) {
+            hideSuggestions();
+            return;
+        }
+        searchTimer = setTimeout(() => searchPlaceSuggestions(keyword), 220);
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!suggestionsEl.contains(event.target) && event.target !== nameInput) {
+            hideSuggestions();
+        }
+    });
+
+    document.querySelectorAll(".filter-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            activeFilter = button.dataset.filter;
+            document.querySelectorAll(".filter-button").forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+            applyFilter();
+        });
+    });
+
+    document.querySelectorAll(".focus-place-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const marker = markerById.get(button.dataset.id);
+            if (!marker) {
+                return;
+            }
+            map.setView(marker.getLatLng(), 16);
+            marker.openPopup();
+        });
+    });
+
+    document.querySelectorAll(".edit-place-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const place = placeById.get(button.dataset.id);
+            if (place) {
+                editPlace(place);
+            }
+        });
+    });
+
+    function showNearby(lat, lng) {
+        const current = L.latLng(lat, lng);
+        L.circleMarker(current, {
+            radius: 9,
+            color: "#1f6258",
+            fillColor: "#287c6f",
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup("我的位置").openPopup();
+        map.setView(current, 14);
+
+        updateDistances(lat, lng);
+        Array.from(placeList.querySelectorAll(".place-card"))
+            .sort((a, b) => Number(a.dataset.distance) - Number(b.dataset.distance))
+            .forEach((card) => placeList.appendChild(card));
+
+        applyFilter();
+        statusEl.textContent = "已按当前位置排序附近地点。";
+    }
+
+    function autoLocateAndRecommend() {
+        if (!navigator.geolocation) {
+            useDefaultLocation();
+            return;
+        }
+        statusEl.textContent = "正在获取定位并计算推荐...";
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                showNearby(position.coords.latitude, position.coords.longitude);
+                sortByRecommendation();
+                statusEl.textContent = "已按当前位置、评分和标签匹配推荐。";
+            },
+            () => useDefaultLocation(),
+            {enableHighAccuracy: true, timeout: 8000, maximumAge: 60000}
+        );
+    }
+
+    function useDefaultLocation() {
+        updateDistances(defaultLocation.lat, defaultLocation.lng);
+        sortByRecommendation();
+        map.setView([defaultLocation.lat, defaultLocation.lng], 11);
+        statusEl.textContent = "未获取到定位，已使用上海作为默认位置推荐。";
+    }
+
+    async function searchPlaceSuggestions(keyword) {
+        try {
+            const city = cityInput.value.trim();
+            const response = await fetch(`/api/map/search?q=${encodeURIComponent(keyword)}&city=${encodeURIComponent(city)}`, {
+                headers: {"Accept": "application/json"}
+            });
+            if (!response.ok) {
+                statusEl.textContent = "地点搜索接口暂时不可用，请稍后再试。";
+                hideSuggestions();
+                return;
+            }
+            const matches = await response.json();
+            renderSuggestions(matches);
+        } catch (error) {
+            statusEl.textContent = "地点搜索失败，请检查网络或地图 Key 配置。";
+            hideSuggestions();
+        }
+    }
+
+    function renderSuggestions(matches) {
+        suggestionsEl.innerHTML = "";
+        if (!matches || matches.length === 0) {
+            statusEl.textContent = "没有找到匹配地点。可以换个关键词，或点击地图手动选点。";
+            hideSuggestions();
+            return;
+        }
+        matches.forEach((place) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "suggestion-item";
+            button.innerHTML = `
+                <strong>${escapeHtml(place.name)}</strong>
+                <span>${escapeHtml(place.typeDisplayName || typeDisplayName(place.type))} · ${escapeHtml(providerName(place.provider))} · ${escapeHtml(place.address || "暂无地址")}</span>
+            `;
+            button.addEventListener("click", () => selectSuggestion(place));
+            suggestionsEl.appendChild(button);
+        });
+        suggestionsEl.classList.remove("hidden");
+    }
+
+    function selectSuggestion(place) {
+        nameInput.value = place.name || "";
+        typeInput.value = place.type || "PARK";
+        addressInput.value = place.address || "";
+        latInput.value = formatCoordinate(place.latitude);
+        lngInput.value = formatCoordinate(place.longitude);
+        if (descriptionInput) {
+            descriptionInput.value = place.description || "";
+        }
+        hideSuggestions();
+
+        if (place.latitude != null && place.longitude != null) {
+            const position = L.latLng(Number(place.latitude), Number(place.longitude));
+            if (selectedMarker) {
+                selectedMarker.setLatLng(position);
+            } else {
+                selectedMarker = L.marker(position, {draggable: true}).addTo(map);
+                selectedMarker.on("dragend", syncSelectedMarker);
+            }
+            selectedMarker.bindPopup(`已选择：${escapeHtml(place.name)}`).openPopup();
+            map.setView(position, 15);
+            statusEl.textContent = "已填入选址。";
+        }
+    }
+
+    function editPlace(place) {
+        placeFormTitle.textContent = "编辑地点";
+        savePlaceButton.textContent = "保存修改";
+        placeForm.action = `/places/${place.id}/edit`;
+        deletePlaceForm.action = `/places/${place.id}/delete`;
+        deletePlaceForm.classList.remove("hidden");
+        nameInput.value = place.name || "";
+        typeInput.value = place.type || "PARK";
+        addressInput.value = place.address || "";
+        latInput.value = formatCoordinate(place.latitude);
+        lngInput.value = formatCoordinate(place.longitude);
+        if (descriptionInput) {
+            descriptionInput.value = place.description || "";
+        }
+        if (policyNoteInput) {
+            policyNoteInput.value = place.policyNote || "";
+        }
+        setSelectedTags(getPlaceTags(place));
+        setFeatureInputs(place);
+        if (place.latitude != null && place.longitude != null) {
+            const position = L.latLng(place.latitude, place.longitude);
+            if (selectedMarker) {
+                selectedMarker.setLatLng(position);
+            } else {
+                selectedMarker = L.marker(position, {draggable: true}).addTo(map);
+                selectedMarker.on("dragend", syncSelectedMarker);
+            }
+            selectedMarker.bindPopup(`正在编辑：${escapeHtml(place.name)}`).openPopup();
+            map.setView(position, 15);
+        }
+        openModal(placeModal);
+        if (nameInput.value.trim()) {
+            searchPlaceSuggestions(nameInput.value.trim());
+        }
+        statusEl.textContent = "编辑中，可重新选址。";
+    }
+
+    function resetPlaceForm() {
+        placeFormTitle.textContent = "上传地点";
+        savePlaceButton.textContent = "提交地点";
+        placeForm.action = "/places";
+        deletePlaceForm.classList.add("hidden");
+        nameInput.value = "";
+        typeInput.value = "PARK";
+        addressInput.value = "";
+        latInput.value = "";
+        lngInput.value = "";
+        if (descriptionInput) {
+            descriptionInput.value = "";
+        }
+        if (policyNoteInput) {
+            policyNoteInput.value = "";
+        }
+        setSelectedTags(recommendedTags.slice(0, 4));
+        setFeatureInputs({});
+        hideSuggestions();
+        statusEl.textContent = "新增模式，可选点或搜索。";
+    }
+
+    function openModal(modal) {
+        modal.classList.remove("hidden");
+        document.body.classList.add("modal-open");
+    }
+
+    function closeModal(modal) {
+        modal.classList.add("hidden");
+        document.body.classList.remove("modal-open");
+    }
+
+    function syncSelectedMarker() {
+        const position = selectedMarker.getLatLng();
+        latInput.value = formatCoordinate(position.lat);
+        lngInput.value = formatCoordinate(position.lng);
+        statusEl.textContent = "坐标已更新。";
+    }
+
+    function hideSuggestions() {
+        suggestionsEl.classList.add("hidden");
+        suggestionsEl.innerHTML = "";
+    }
+
+    function formatCoordinate(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number.toFixed(6) : "";
+    }
+
+    function typeDisplayName(type) {
+        const names = {
+            PARK: "公园",
+            SCENIC: "景点",
+            MALL: "商场",
+            HOTEL: "酒店",
+            LAWN: "草坪"
+        };
+        return names[type] || type || "";
+    }
+
+    function providerName(provider) {
+        const names = {
+            amap: "高德地图",
+            nominatim: "OpenStreetMap",
+            local: "本地地点"
+        };
+        return names[provider] || "地图";
+    }
+
+    function applyFilter() {
+        markerById.forEach((marker) => {
+            const place = placeById.get(marker.placeId);
+            const visible = (activeFilter === "ALL" || marker.placeType === activeFilter) && matchesSearch(place) && matchesTagFilter(place);
+            if (visible && !map.hasLayer(marker)) {
+                marker.addTo(map);
+            }
+            if (!visible && map.hasLayer(marker)) {
+                marker.removeFrom(map);
+            }
+        });
+
+        placeList.querySelectorAll(".place-card").forEach((card) => {
+            const place = placeById.get(String(card.dataset.id));
+            const visible = (activeFilter === "ALL" || card.dataset.type === activeFilter) && matchesSearch(place) && matchesTagFilter(place);
+            card.hidden = !visible;
+        });
+        const filters = [];
+        if (activeFilter !== "ALL") {
+            filters.push("类型");
+        }
+        if (activeSearchKeyword) {
+            filters.push("关键词");
+        }
+        if (selectedFilterTags.size !== tagOptions.length) {
+            filters.push("标签");
+        }
+        statusEl.textContent = filters.length === 0 ? "已显示全部地点。" : `已按${filters.join("和")}筛选。`;
+    }
+
+    function applyExistingPlaceSearch() {
+        activeSearchKeyword = mapSearchInput.value.trim().toLowerCase();
+        applyFilter();
+    }
+
+    function matchesSearch(place) {
+        if (!activeSearchKeyword) {
+            return true;
+        }
+        if (!place) {
+            return false;
+        }
+        const text = `${place.name || ""} ${place.address || ""} ${place.description || ""} ${place.tags || ""} ${typeDisplayName(place.type)}`.toLowerCase();
+        return text.includes(activeSearchKeyword);
+    }
+
+    function matchesTagFilter(place) {
+        if (selectedFilterTags.size === tagOptions.length) {
+            return true;
+        }
+        if (selectedFilterTags.size === 0 || !place) {
+            return false;
+        }
+        const tags = getPlaceTags(place);
+        if (tags.length === 0) {
+            return false;
+        }
+        return tags.some((tag) => selectedFilterTags.has(tag));
+    }
+
+    function setFeatureInputs(place) {
+        featureInputs.forEach((input) => {
+            input.value = Boolean(place[input.id]) ? "true" : "false";
+        });
+    }
+
+    function renderTagPalette() {
+        const keyword = tagSearchInput.value.trim().toLowerCase();
+        tagPalette.innerHTML = "";
+        tagOptions
+            .filter((tag) => !keyword || tag.toLowerCase().includes(keyword))
+            .forEach((tag) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "tag-option";
+                if (selectedTags.has(tag)) {
+                    button.classList.add("active");
+                }
+                if (recommendedTags.includes(tag)) {
+                    button.classList.add("recommended");
+                }
+                button.textContent = tag;
+                button.addEventListener("click", () => toggleSelectedTag(tag));
+                tagPalette.appendChild(button);
+            });
+    }
+
+    function renderTagFilterOptions() {
+        const keyword = tagFilterSearchInput.value.trim().toLowerCase();
+        tagFilterOptions.innerHTML = "";
+        tagOptions
+            .filter((tag) => !keyword || tag.toLowerCase().includes(keyword))
+            .forEach((tag) => {
+                const label = document.createElement("label");
+                label.className = "tag-filter-option";
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = selectedFilterTags.has(tag);
+                checkbox.addEventListener("change", () => {
+                    if (checkbox.checked) {
+                        selectedFilterTags.add(tag);
+                    } else {
+                        selectedFilterTags.delete(tag);
+                    }
+                    updateTagFilterSummary();
+                    applyFilter();
+                });
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(tag));
+                tagFilterOptions.appendChild(label);
+            });
+    }
+
+    function updateTagFilterSummary() {
+        if (selectedFilterTags.size === tagOptions.length) {
+            tagFilterTrigger.textContent = "全部标签";
+            return;
+        }
+        tagFilterTrigger.textContent = selectedFilterTags.size === 0 ? "未选标签" : `已选 ${selectedFilterTags.size} 个标签`;
+    }
+
+    function toggleSelectedTag(tag) {
+        if (selectedTags.has(tag)) {
+            selectedTags.delete(tag);
+        } else {
+            selectedTags.add(tag);
+        }
+        syncSelectedTagView();
+        renderTagPalette();
+    }
+
+    function setSelectedTags(tags) {
+        selectedTags.clear();
+        tags.filter(Boolean).forEach((tag) => selectedTags.add(tag));
+        syncSelectedTagView();
+        renderTagPalette();
+    }
+
+    function syncSelectedTagView() {
+        selectedTagList.innerHTML = "";
+        Array.from(selectedTags).forEach((tag) => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "selected-tag";
+            chip.textContent = `${tag} ×`;
+            chip.addEventListener("click", () => toggleSelectedTag(tag));
+            selectedTagList.appendChild(chip);
+        });
+        tagsInput.value = Array.from(selectedTags).join(",");
+    }
+
+    function syncTagsBeforeSubmit() {
+        tagsInput.value = Array.from(selectedTags).join(",");
+        setBooleanInput("indoorAllowed", selectedTags.has("室内可进"));
+        setBooleanInput("largeDogFriendly", selectedTags.has("大狗友好"));
+        setBooleanInput("catFriendly", selectedTags.has("可带猫") || selectedTags.has("猫咪友好") || selectedTags.has("可放猫包"));
+        setBooleanInput("leashRequired", selectedTags.has("需牵引"));
+        setBooleanInput("waterAvailable", selectedTags.has("饮水"));
+        setBooleanInput("parkingAvailable", selectedTags.has("停车") || selectedTags.has("可停车"));
+        setBooleanInput("feeRequired", selectedTags.has("收费透明"));
+    }
+
+    function setBooleanInput(id, value) {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = value ? "true" : "false";
+        }
+    }
+
+    function getPlaceTags(place) {
+        const tags = String(place?.tags || "")
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+        if (place?.indoorAllowed) tags.push("室内可进");
+        if (place?.largeDogFriendly) tags.push("大狗友好");
+        if (place?.catFriendly) tags.push("可带猫", "猫咪友好");
+        if (place?.leashRequired) tags.push("需牵引");
+        if (place?.waterAvailable) tags.push("饮水");
+        if (place?.parkingAvailable) tags.push("停车");
+        if (place?.feeRequired) tags.push("收费透明");
+        return Array.from(new Set(tags));
+    }
+
+    function updateDistances(lat, lng) {
+        const current = L.latLng(lat, lng);
+        Array.from(placeList.querySelectorAll(".place-card")).forEach((card) => {
+            const placeLat = Number(card.dataset.lat);
+            const placeLng = Number(card.dataset.lng);
+            if (!Number.isFinite(placeLat) || !Number.isFinite(placeLng)) {
+                card.dataset.distance = "999999999";
+                return;
+            }
+            const distance = current.distanceTo([placeLat, placeLng]);
+            card.dataset.distance = String(distance);
+            const distanceEl = card.querySelector(".distance-text");
+            if (distanceEl) {
+                distanceEl.textContent = distance >= 1000
+                    ? `距你 ${(distance / 1000).toFixed(1)} 公里`
+                    : `距你 ${Math.round(distance)} 米`;
+            }
+        });
+    }
+
+    function sortByRecommendation() {
+        Array.from(placeList.querySelectorAll(".place-card"))
+            .sort((a, b) => recommendationScore(b) - recommendationScore(a))
+            .forEach((card) => placeList.appendChild(card));
+        applyFilter();
+    }
+
+    function recommendationScore(card) {
+        const place = placeById.get(String(card.dataset.id));
+        const distance = Number(card.dataset.distance || "999999999");
+        const distanceScore = Number.isFinite(distance) ? Math.max(0, 40 - distance / 250) : 0;
+        const ratingScore = Number(place?.averageRating || 0) * 12;
+        const placeTags = getPlaceTags(place);
+        const tagScore = recommendedTags.filter((tag) => placeTags.includes(tag)).length * 9;
+        return distanceScore + ratingScore + tagScore;
+    }
+
+    function placePopupHtml(place) {
+        const address = place.address ? `<br>${escapeHtml(place.address)}` : "";
+        const tags = getPlaceTags(place).join(" · ");
+        const tagLine = tags ? `<br><span>${escapeHtml(tags)}</span>` : "";
+        const note = place.policyNote ? `<br><span>${escapeHtml(place.policyNote)}</span>` : "";
+        const description = place.description ? `<br><span>${escapeHtml(place.description)}</span>` : "";
+        return `<strong>${escapeHtml(place.name)}</strong>${address}${tagLine}${note}${description}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+</script>
+</body>
+</html>
