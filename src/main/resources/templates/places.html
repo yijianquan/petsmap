@@ -532,8 +532,12 @@
     }
 
     function autoLocateAndRecommend() {
+        if (!window.isSecureContext) {
+            useDefaultLocation("线上 HTTP 页面无法获取浏览器定位；已用上海默认位置排序。配置 HTTPS 后会自动启用定位。");
+            return;
+        }
         if (!navigator.geolocation) {
-            useDefaultLocation();
+            useDefaultLocation("当前浏览器不支持定位，已用上海默认位置排序。");
             return;
         }
         statusEl.textContent = "正在获取定位并计算推荐...";
@@ -542,18 +546,18 @@
                 showNearby(position.coords.latitude, position.coords.longitude);
                 statusEl.textContent = "已获取当前位置，并按距离由近到远排序。";
             },
-            () => useDefaultLocation(),
+            () => useDefaultLocation("未获取到定位权限，已用上海默认位置排序。"),
             {enableHighAccuracy: true, timeout: 8000, maximumAge: 60000}
         );
     }
 
-    function useDefaultLocation() {
+    function useDefaultLocation(message) {
         updateDistances(defaultLocation.lat, defaultLocation.lng);
         sortByDistance();
         if (mapReady) {
             map.setView([defaultLocation.lat, defaultLocation.lng], 11);
         }
-        statusEl.textContent = "未获取到定位，已使用上海作为默认位置并按距离排序。";
+        statusEl.textContent = message || "未获取到定位，已使用上海作为默认位置并按距离排序。";
     }
 
     async function searchPlaceSuggestions(keyword) {

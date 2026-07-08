@@ -1374,10 +1374,44 @@ textarea:focus {
 }
 
 @media (max-width: 760px) {
+    body {
+        font-size: 14px;
+    }
+
     .topbar {
-        align-items: flex-start;
+        position: static;
+        align-items: stretch;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
+        padding: 12px 16px;
+    }
+
+    .brand {
+        font-size: 18px;
+    }
+
+    .topbar nav {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        width: 100%;
+    }
+
+    .topbar nav a,
+    .topbar .ghost-button {
+        width: 100%;
+        padding: 8px 6px;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .topbar form {
+        width: 100%;
+    }
+
+    .page {
+        width: min(100% - 24px, 1180px);
+        padding: 12px 0 44px;
     }
 
     .content-grid,
@@ -1409,21 +1443,117 @@ textarea:focus {
         gap: 14px;
     }
 
+    .page-heading h1,
+    .login-panel h1 {
+        font-size: 30px;
+    }
+
     .compact-heading,
     .map-tools {
         align-items: stretch;
         justify-content: flex-start;
     }
 
+    .map-header-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .map-header-actions,
+    .map-header-row > div {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .map-header-row > div:first-child {
+        display: flex;
+    }
+
+    .map-status {
+        line-height: 1.5;
+    }
+
+    .map-tools {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .tag-filter-dropdown,
+    .tag-filter-trigger,
+    .map-search-group,
+    .map-search-group input:first-child,
+    .map-search-group button,
+    .small-action-button,
+    .primary-button {
+        width: 100%;
+    }
+
+    .tag-filter-menu {
+        left: 0;
+        right: 0;
+        width: auto;
+        min-width: 0;
+        max-height: min(55vh, 420px);
+        overflow: auto;
+    }
+
     .filter-group,
     .feature-filter-group,
-    .map-action-group {
+    .map-action-group,
+    .map-search-group {
         width: 100%;
     }
 
     .timeline-item,
     .place-card {
         flex-direction: column;
+    }
+
+    .place-card {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .place-title-row,
+    .place-meta-row,
+    .place-info-row,
+    .place-actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .place-actions {
+        width: 100%;
+    }
+
+    .place-actions form,
+    .place-actions button {
+        width: 100%;
+    }
+
+    .place-location-button {
+        align-self: flex-start;
+    }
+
+    .map-wrap,
+    .map {
+        min-height: 320px;
+    }
+
+    .map-wrap.collapsed {
+        min-height: 0;
+    }
+
+    .modal-panel {
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+    }
+
+    .modal-body,
+    .modal-panel form {
+        max-width: 100%;
     }
 
     .two-cols {
@@ -1444,7 +1574,16 @@ textarea:focus {
     }
 
     .calendar-toolbar .calendar-nav {
-        justify-content: flex-start;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .calendar-tabs {
+        width: 100%;
+    }
+
+    .calendar-tabs button {
+        flex: 1;
     }
 
     .qa-composer {
@@ -1456,12 +1595,33 @@ textarea:focus {
     }
 
     .calendar-day {
-        min-height: 88px;
-        padding: 7px;
+        min-height: 76px;
+        padding: 6px;
     }
 
     .event-tag {
         font-size: 11px;
         padding: 4px 5px;
+    }
+}
+
+@media (max-width: 420px) {
+    .topbar nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .map-header-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-day {
+        min-height: 66px;
+    }
+
+    .event-tag {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
