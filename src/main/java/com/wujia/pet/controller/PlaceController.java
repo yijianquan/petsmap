@@ -41,7 +41,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 @Controller
@@ -167,12 +166,6 @@ public class PlaceController {
         comment.setCreatedAt(LocalDateTime.now());
         applyCommentImage(comment, imageFile);
         commentRepository.save(comment);
-        return "redirect:/places";
-    }
-
-    @org.springframework.web.bind.annotation.ExceptionHandler({IllegalArgumentException.class, IOException.class})
-    public String handlePlaceError(Exception exception, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         return "redirect:/places";
     }
 

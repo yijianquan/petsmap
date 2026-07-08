@@ -1,0 +1,56 @@
+spring:
+  datasource:
+    url: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:wu_jia_you_chong}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+  session:
+    store-type: redis
+    timeout: 7d
+    redis:
+      namespace: wu-jia-you-chong:session
+  thymeleaf:
+    cache: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        name: WJYC_SESSION
+        max-age: 7d
+        http-only: true
+        same-site: lax
+
+app:
+  bootstrap:
+    enabled: true
+    admin-username: ${APP_ADMIN_USERNAME:admin}
+    admin-password: ${APP_ADMIN_PASSWORD:admin123}
+  map:
+    default-city: ${APP_MAP_DEFAULT_CITY:上海}
+    amap-key: ${APP_MAP_AMAP_KEY:}
+  ai:
+    api-key: ${APP_AI_API_KEY:}
+    base-url: ${APP_AI_BASE_URL:https://api.siliconflow.cn/v1/chat/completions}
+    model: ${APP_AI_MODEL:Qwen/Qwen2.5-7B-Instruct}
