@@ -8,11 +8,13 @@
 </head>
 <body class="login-page">
 <main class="login-shell">
-    <section class="login-panel">
-        <div>
+    <section class="login-panel login-panel-with-visual">
+        <div class="login-visual">
+            <div class="login-visual-copy">
             <p class="eyebrow">吾家有宠</p>
-            <h1>照顾每一只家里的小朋友</h1>
-            <p class="muted">记录疫苗、洗澡、生日和宠物友好地点。默认账号：admin / admin123</p>
+            <h1>记录宠物友好</h1>
+            <p>从日常照护到周边探索，把家里的小朋友安排得妥妥帖帖。</p>
+            </div>
         </div>
         <form th:action="@{/login}" method="post" class="form-stack">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">

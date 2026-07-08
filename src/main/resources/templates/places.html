@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>吾家有宠 - 地图</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
@@ -288,10 +287,12 @@
         </div>
     </section>
 </main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script th:inline="javascript">
     const places = /*[[${places}]]*/ [];
-    const map = L.map("petMap").setView([31.2304, 121.4737], 11);
+    let map;
+    let selectedMarker;
+    let mapReady = false;
+    let leafletLoading;
     const statusEl = document.getElementById("mapStatus");
     const placeList = document.getElementById("placeList");
     const placeTypes = /*[[${placeTypes}]]*/ [];
@@ -344,66 +345,31 @@
     const bounds = [];
     const markerById = new Map();
     const placeById = new Map();
-    let selectedMarker;
     let activeSearchKeyword = "";
     let searchTimer;
     const defaultLocation = {lat: 31.2304, lng: 121.4737, name: "默认位置：上海"};
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap"
-    }).addTo(map);
-
     places.forEach((place) => {
         placeById.set(String(place.id), place);
-        if (place.latitude == null || place.longitude == null) {
-            return;
+        if (place.latitude != null && place.longitude != null) {
+            bounds.push([place.latitude, place.longitude]);
         }
-        const marker = L.marker([place.latitude, place.longitude])
-            .addTo(map)
-            .bindPopup(placePopupHtml(place));
-        marker.placeId = String(place.id);
-        marker.placeType = place.type;
-        markerById.set(String(place.id), marker);
-        bounds.push([place.latitude, place.longitude]);
     });
 
-    if (bounds.length > 0) {
-        map.fitBounds(bounds, {padding: [28, 28], maxZoom: 14});
-    }
     renderTagPalette();
     renderTagFilterOptions();
     renderPlaceCardTags();
     updateTagFilterSummary();
     updateTypeFilterSummary();
-    autoLocateAndRecommend();
-
-    map.on("click", (event) => {
-        resetPlaceForm();
-        const lat = formatCoordinate(event.latlng.lat);
-        const lng = formatCoordinate(event.latlng.lng);
-        latInput.value = lat;
-        lngInput.value = lng;
-        if (!addressInput.value) {
-            addressInput.value = `地图选点：${lat}, ${lng}`;
-        }
-        if (selectedMarker) {
-            selectedMarker.setLatLng(event.latlng);
-        } else {
-            selectedMarker = L.marker(event.latlng, {draggable: true}).addTo(map);
-            selectedMarker.on("dragend", syncSelectedMarker);
-        }
-        selectedMarker.bindPopup(`已选点<br>${lat}, ${lng}`).openPopup();
-        openModal(placeModal);
-        nameInput.focus();
-        statusEl.textContent = "已选点，可提交。";
-    });
+    updateDistances(defaultLocation.lat, defaultLocation.lng);
+    sortByDistance();
+    statusEl.textContent = "已显示附近地点，展开地图后加载地图。";
 
     toggleMapButton.addEventListener("click", () => {
         const collapsed = mapWrap.classList.toggle("collapsed");
         toggleMapButton.textContent = collapsed ? "展开地图" : "收起地图";
         if (!collapsed) {
-            setTimeout(() => map.invalidateSize(), 120);
+            ensureMapReady().then(() => setTimeout(() => map.invalidateSize(), 120));
         }
     });
 
@@ -522,11 +488,12 @@
 
     document.querySelectorAll(".focus-place-button").forEach((button) => {
         button.addEventListener("click", () => {
-            const marker = markerById.get(button.dataset.id);
-            if (!marker) {
-                return;
-            }
-            expandMap(() => {
+            expandMap(async () => {
+                await ensureMapReady();
+                const marker = markerById.get(button.dataset.id);
+                if (!marker) {
+                    return;
+                }
                 map.setView(marker.getLatLng(), 16);
                 marker.openPopup();
                 document.querySelector(".map-panel").scrollIntoView({behavior: "smooth", block: "start"});
@@ -544,14 +511,16 @@
     });
 
     function showNearby(lat, lng) {
-        const current = L.latLng(lat, lng);
-        L.circleMarker(current, {
-            radius: 9,
-            color: "#1f6258",
-            fillColor: "#287c6f",
-            fillOpacity: 0.9
-        }).addTo(map).bindPopup("我的位置").openPopup();
-        map.setView(current, 14);
+        if (mapReady) {
+            const current = L.latLng(lat, lng);
+            L.circleMarker(current, {
+                radius: 9,
+                color: "#1f6258",
+                fillColor: "#287c6f",
+                fillOpacity: 0.9
+            }).addTo(map).bindPopup("我的位置").openPopup();
+            map.setView(current, 14);
+        }
 
         updateDistances(lat, lng);
         Array.from(placeList.querySelectorAll(".place-card"))
@@ -581,7 +550,9 @@
     function useDefaultLocation() {
         updateDistances(defaultLocation.lat, defaultLocation.lng);
         sortByDistance();
-        map.setView([defaultLocation.lat, defaultLocation.lng], 11);
+        if (mapReady) {
+            map.setView([defaultLocation.lat, defaultLocation.lng], 11);
+        }
         statusEl.textContent = "未获取到定位，已使用上海作为默认位置并按距离排序。";
     }
 
@@ -625,7 +596,7 @@
         suggestionsEl.classList.remove("hidden");
     }
 
-    function selectSuggestion(place) {
+    async function selectSuggestion(place) {
         nameInput.value = place.name || "";
         typeInput.value = place.type || "PARK";
         addressInput.value = place.address || "";
@@ -637,6 +608,7 @@
         hideSuggestions();
 
         if (place.latitude != null && place.longitude != null) {
+            await ensureMapReady();
             const position = L.latLng(Number(place.latitude), Number(place.longitude));
             if (selectedMarker) {
                 selectedMarker.setLatLng(position);
@@ -650,7 +622,7 @@
         }
     }
 
-    function editPlace(place) {
+    async function editPlace(place) {
         placeFormTitle.textContent = "编辑地点";
         savePlaceButton.textContent = "保存修改";
         placeForm.action = `/places/${place.id}/edit`;
@@ -670,6 +642,7 @@
         setSelectedTags(getPlaceTags(place));
         setFeatureInputs(place);
         if (place.latitude != null && place.longitude != null) {
+            await ensureMapReady();
             const position = L.latLng(place.latitude, place.longitude);
             if (selectedMarker) {
                 selectedMarker.setLatLng(position);
@@ -758,16 +731,18 @@
     }
 
     function applyFilter() {
-        markerById.forEach((marker) => {
-            const place = placeById.get(marker.placeId);
-            const visible = matchesTypeFilter(marker.placeType) && matchesSearch(place) && matchesTagFilter(place);
-            if (visible && !map.hasLayer(marker)) {
-                marker.addTo(map);
-            }
-            if (!visible && map.hasLayer(marker)) {
-                marker.removeFrom(map);
-            }
-        });
+        if (mapReady) {
+            markerById.forEach((marker) => {
+                const place = placeById.get(marker.placeId);
+                const visible = matchesTypeFilter(marker.placeType) && matchesSearch(place) && matchesTagFilter(place);
+                if (visible && !map.hasLayer(marker)) {
+                    marker.addTo(map);
+                }
+                if (!visible && map.hasLayer(marker)) {
+                    marker.removeFrom(map);
+                }
+            });
+        }
 
         placeList.querySelectorAll(".place-card").forEach((card) => {
             const place = placeById.get(String(card.dataset.id));
@@ -922,12 +897,12 @@
             mapWrap.classList.remove("collapsed");
             toggleMapButton.textContent = "收起地图";
         }
-        setTimeout(() => {
+        ensureMapReady().then(() => setTimeout(() => {
             map.invalidateSize();
             if (typeof afterExpand === "function") {
                 afterExpand();
             }
-        }, wasCollapsed ? 140 : 0);
+        }, wasCollapsed ? 140 : 0));
     }
 
     function toggleSelectedTag(tag) {
@@ -1029,7 +1004,6 @@
     }
 
     function updateDistances(lat, lng) {
-        const current = L.latLng(lat, lng);
         Array.from(placeList.querySelectorAll(".place-card")).forEach((card) => {
             const placeLat = Number(card.dataset.lat);
             const placeLng = Number(card.dataset.lng);
@@ -1037,7 +1011,7 @@
                 card.dataset.distance = "999999999";
                 return;
             }
-            const distance = current.distanceTo([placeLat, placeLng]);
+            const distance = distanceInMeters(lat, lng, placeLat, placeLng);
             card.dataset.distance = String(distance);
             const distanceEl = card.querySelector(".distance-text");
             if (distanceEl) {
@@ -1046,6 +1020,95 @@
                     : `距你 ${Math.round(distance)} 米`;
             }
         });
+    }
+
+    function distanceInMeters(lat1, lng1, lat2, lng2) {
+        const radius = 6371000;
+        const toRad = (value) => value * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function ensureMapReady() {
+        if (mapReady) {
+            return Promise.resolve(map);
+        }
+        if (!leafletLoading) {
+            statusEl.textContent = "正在加载地图...";
+            leafletLoading = loadLeaflet().then(() => {
+                map = L.map("petMap").setView([defaultLocation.lat, defaultLocation.lng], 11);
+                L.tileLayer("https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}", {
+                    subdomains: ["1", "2", "3", "4"],
+                    maxZoom: 19,
+                    attribution: "&copy; 高德地图"
+                }).addTo(map);
+                places.forEach((place) => {
+                    if (place.latitude == null || place.longitude == null) {
+                        return;
+                    }
+                    const marker = L.marker([place.latitude, place.longitude])
+                        .addTo(map)
+                        .bindPopup(placePopupHtml(place));
+                    marker.placeId = String(place.id);
+                    marker.placeType = place.type;
+                    markerById.set(String(place.id), marker);
+                });
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds, {padding: [28, 28], maxZoom: 14});
+                }
+                map.on("click", handleMapClick);
+                mapReady = true;
+                applyFilter();
+                statusEl.textContent = "地图已加载。";
+                return map;
+            }).catch(() => {
+                statusEl.textContent = "地图加载失败，请刷新后再试。";
+                throw new Error("Leaflet load failed");
+            });
+        }
+        return leafletLoading;
+    }
+
+    function loadLeaflet() {
+        if (window.L) {
+            return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+            const stylesheet = document.createElement("link");
+            stylesheet.rel = "stylesheet";
+            stylesheet.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+            document.head.appendChild(stylesheet);
+            const script = document.createElement("script");
+            script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+            script.defer = true;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
+    }
+
+    function handleMapClick(event) {
+        resetPlaceForm();
+        const lat = formatCoordinate(event.latlng.lat);
+        const lng = formatCoordinate(event.latlng.lng);
+        latInput.value = lat;
+        lngInput.value = lng;
+        if (!addressInput.value) {
+            addressInput.value = `地图选点：${lat}, ${lng}`;
+        }
+        if (selectedMarker) {
+            selectedMarker.setLatLng(event.latlng);
+        } else {
+            selectedMarker = L.marker(event.latlng, {draggable: true}).addTo(map);
+            selectedMarker.on("dragend", syncSelectedMarker);
+        }
+        selectedMarker.bindPopup(`已选点<br>${lat}, ${lng}`).openPopup();
+        openModal(placeModal);
+        nameInput.focus();
+        statusEl.textContent = "已选点，可提交。";
     }
 
     function sortByRecommendation() {

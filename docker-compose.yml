@@ -1,0 +1,78 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: wjyc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --max-connections=80
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db/mysql-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: wjyc-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    image: wu-jia-you-chong:latest
+    container_name: wjyc-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD}
+      APP_MAP_DEFAULT_CITY: ${APP_MAP_DEFAULT_CITY}
+      APP_MAP_AMAP_KEY: ${APP_MAP_AMAP_KEY}
+      APP_AI_API_KEY: ${APP_AI_API_KEY}
+      APP_AI_BASE_URL: ${APP_AI_BASE_URL}
+      APP_AI_MODEL: ${APP_AI_MODEL}
+      TZ: Asia/Shanghai
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: wjyc-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  mysql-data:
+  redis-data:
