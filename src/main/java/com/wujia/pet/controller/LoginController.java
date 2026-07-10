@@ -22,12 +22,12 @@ public class LoginController {
 
     @GetMapping("/login")
     public String login() {
-        return "login";
+        return "redirect:/";
     }
 
     @GetMapping("/register")
     public String register() {
-        return "register";
+        return "redirect:/";
     }
 
     @PostMapping("/register")

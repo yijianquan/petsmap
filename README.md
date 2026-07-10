@@ -1,13 +1,13 @@
 # 吾家有宠
 
-Java 17 + Spring Boot Web 应用，当前是 Web 页面版本，后续可以把 `/api/**` 接口给微信小程序复用。
+Java 17 + Spring Boot 后端 + 微信小程序前端。当前主功能聚焦宠物出行地图。
 
 ## 功能
 
 - 登录：默认账号 `admin`，默认密码 `admin123`
-- 首页：支持多只宠物，记录昵称、头像、性别、生日
-- 日历：记录疫苗时间、疫苗类别、洗澡记录、生日提醒
-- 地图：上传宠物友好公园/景点/商场、宠物友好酒店、遛狗草坪
+- 地图：上传和浏览宠物友好地点，支持分类、标签、评论和评分
+- 我的：微信用户登录后查看自己上传的地点并退出登录
+- AI 问答：后端能力保留，可继续为宠物照护问题提供回答
 - 数据库：MySQL
 - 登录会话缓存：Redis，应用重启后无需重新登录
 
@@ -53,10 +53,8 @@ D:\maven\bin\mvn.cmd spring-boot:run
 http://localhost:8080
 ```
 
-## API 预留
+## API
 
-- `GET /api/pets`
-- `GET /api/calendar/events`
 - `GET /api/places`
 - `GET /api/map/search?q=静安寺&city=上海`
 

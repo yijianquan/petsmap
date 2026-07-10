@@ -10,8 +10,6 @@
 <header class="topbar">
     <a class="brand" th:href="@{/}">吾家有宠</a>
     <nav>
-        <a th:href="@{/}">宠物</a>
-        <a th:href="@{/calendar}">日历</a>
         <a th:href="@{/places}">地图</a>
         <a class="active" th:href="@{/qa}">问答</a>
     </nav>
@@ -22,6 +20,18 @@
 </header>
 
 <main class="page qa-page">
+    <div class="modal-backdrop" id="errorModal" th:classappend="${errorMessage} ? '' : ' hidden'">
+        <section class="modal-panel small-modal" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle">
+            <div class="modal-header">
+                <h2 id="errorTitle">操作没有完成</h2>
+                <button class="modal-close" type="button" data-close-modal="errorModal" aria-label="关闭">×</button>
+            </div>
+            <div class="modal-body">
+                <p th:text="${errorMessage}">请稍后再试。</p>
+            </div>
+        </section>
+    </div>
+
     <section class="qa-shell">
         <div class="qa-thread" id="qaThread">
             <div class="qa-message ai">
@@ -45,6 +55,10 @@
     const csrfHeader = document.getElementById("csrfHeader").value;
     const csrfToken = document.getElementById("csrfToken").value;
 
+    document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => document.getElementById(button.dataset.closeModal)?.classList.add("hidden"));
+    });
+
     qaForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const question = questionInput.value.trim();
@@ -64,7 +78,7 @@
                 body: JSON.stringify({question})
             });
             const data = await response.json();
-            thinking.querySelector("p").textContent = data.answer || "暂时没有生成回答。";
+            thinking.querySelector("p").textContent = data.answer || data.message || "暂时没有生成回答。";
         } catch (error) {
             thinking.querySelector("p").textContent = "问答服务暂时不可用，请稍后再试。";
         }

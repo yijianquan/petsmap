@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 public class SecurityConfig {
@@ -17,28 +18,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers(new AntPathRequestMatcher("/miniapp/**")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/login",
-                                "/register",
-                                "/css/**",
-                                "/js/**",
-                                "/img/**",
-                                "/images/**",
-                                "/favicon.ico"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers("/", "/css/**", "/img/**", "/miniapp/**", "/login", "/register").permitAll()
+                        .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
-                        .permitAll()
-                )
+                        .permitAll())
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                );
-
+                        .permitAll());
         return http.build();
     }
 

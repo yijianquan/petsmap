@@ -7,6 +7,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -50,6 +51,42 @@ public class MapSearchService {
         return searchLocalPlaces(cleanKeyword);
     }
 
+    public Map<String, Object> reverse(Double latitude, Double longitude) {
+        if (latitude == null || longitude == null) {
+            return Map.of();
+        }
+        if (amapKey == null || amapKey.isBlank()) {
+            return Map.of(
+                    "name", "当前位置",
+                    "address", "",
+                    "latitude", latitude,
+                    "longitude", longitude);
+        }
+        URI uri = URI.create("https://restapi.amap.com/v3/geocode/regeo"
+                + "?location=" + encode(longitude + "," + latitude)
+                + "&extensions=all&radius=500&roadlevel=0"
+                + "&key=" + encode(amapKey));
+        try {
+            JsonNode root = restClient.get().uri(uri).retrieve().body(JsonNode.class);
+            JsonNode regeocode = root == null ? null : root.path("regeocode");
+            if (regeocode == null || regeocode.isMissingNode()) {
+                return Map.of("name", "当前位置", "address", "", "latitude", latitude, "longitude", longitude);
+            }
+            String address = regeocode.path("formatted_address").asText("");
+            String name = firstPoiName(regeocode);
+            if (name.isBlank()) {
+                name = address.isBlank() ? "当前位置" : address;
+            }
+            return Map.of(
+                    "name", name,
+                    "address", address,
+                    "latitude", latitude,
+                    "longitude", longitude);
+        } catch (RuntimeException exception) {
+            return Map.of("name", "当前位置", "address", "", "latitude", latitude, "longitude", longitude);
+        }
+    }
+
     private List<MapSearchResult> searchAmap(String keyword, String city) {
         String encodedKeyword = encode(keyword);
         String encodedCity = encode(city);
@@ -75,7 +112,6 @@ public class MapSearchService {
                 if (latitude == null || longitude == null) {
                     continue;
                 }
-                Coordinate coordinate = gcj02ToWgs84(latitude, longitude);
                 String name = poi.path("name").asText("");
                 String address = joinAddress(
                         poi.path("pname").asText(""),
@@ -83,7 +119,7 @@ public class MapSearchService {
                         poi.path("adname").asText(""),
                         poi.path("address").asText(""));
                 PlaceType type = inferType(name + " " + poi.path("type").asText(""));
-                results.add(result(name, address, coordinate.latitude(), coordinate.longitude(), type, "amap"));
+                results.add(result(name, address, latitude, longitude, type, "amap"));
             }
             return results;
         } catch (RuntimeException ex) {
@@ -156,6 +192,9 @@ public class MapSearchService {
         if (value.contains("酒店") || value.contains("hotel")) {
             return PlaceType.HOTEL;
         }
+        if (value.contains("餐厅") || value.contains("餐饮") || value.contains("饭店") || value.contains("restaurant") || value.contains("food")) {
+            return PlaceType.RESTAURANT;
+        }
         if (value.contains("商场") || value.contains("购物") || value.contains("mall") || value.contains("shopping")) {
             return PlaceType.MALL;
         }
@@ -177,6 +216,18 @@ public class MapSearchService {
             builder.append(part);
         }
         return builder.toString();
+    }
+
+    private String firstPoiName(JsonNode regeocode) {
+        JsonNode pois = regeocode.path("pois");
+        if (pois.isArray() && !pois.isEmpty()) {
+            return pois.get(0).path("name").asText("");
+        }
+        JsonNode aois = regeocode.path("aois");
+        if (aois.isArray() && !aois.isEmpty()) {
+            return aois.get(0).path("name").asText("");
+        }
+        return "";
     }
 
     private String encode(String value) {

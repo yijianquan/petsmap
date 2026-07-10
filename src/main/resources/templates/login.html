@@ -8,6 +8,18 @@
 </head>
 <body class="login-page">
 <main class="login-shell">
+    <div class="modal-backdrop" id="errorModal" th:classappend="${errorMessage} ? '' : ' hidden'">
+        <section class="modal-panel small-modal" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle">
+            <div class="modal-header">
+                <h2 id="errorTitle">操作没有完成</h2>
+                <button class="modal-close" type="button" data-close-modal="errorModal" aria-label="关闭">×</button>
+            </div>
+            <div class="modal-body">
+                <p th:text="${errorMessage}">请稍后再试。</p>
+            </div>
+        </section>
+    </div>
+
     <section class="login-panel login-panel-with-visual">
         <div class="login-visual">
             <div class="login-visual-copy">
@@ -34,5 +46,10 @@
         </form>
     </section>
 </main>
+<script>
+    document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => document.getElementById(button.dataset.closeModal)?.classList.add("hidden"));
+    });
+</script>
 </body>
 </html>

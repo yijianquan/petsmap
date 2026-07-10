@@ -1,13 +1,10 @@
 package com.wujia.pet.controller;
 
 import com.wujia.pet.entity.PlaceComment;
-import com.wujia.pet.entity.Pet;
-import com.wujia.pet.entity.PetCategory;
 import com.wujia.pet.entity.PetFriendlyPlace;
 import com.wujia.pet.entity.PlaceType;
 import com.wujia.pet.entity.UserAccount;
 import com.wujia.pet.repository.PetFriendlyPlaceRepository;
-import com.wujia.pet.repository.PetRepository;
 import com.wujia.pet.repository.PlaceCommentRepository;
 import com.wujia.pet.service.CurrentUserService;
 import jakarta.validation.Valid;
@@ -48,15 +45,14 @@ public class PlaceController {
 
     private final PetFriendlyPlaceRepository placeRepository;
     private final PlaceCommentRepository commentRepository;
-    private final PetRepository petRepository;
     private final CurrentUserService currentUserService;
     private static final int COMMENT_IMAGE_MAX_SIZE = 900;
     private static final float COMMENT_IMAGE_QUALITY = 0.78f;
     private static final List<String> BASE_TAGS = List.of(
             "停车", "饮水", "室内可进", "外摆友好", "可预约", "免费", "收费透明", "电梯友好", "阴凉多", "夜间照明");
-    private static final List<String> DOG_TAGS = List.of(
+    private static final List<String> PET_FRIENDLY_TAGS = List.of(
             "大狗友好", "无小孩", "有围栏", "草坪大", "可下地", "需牵引", "拾便方便", "同伴多");
-    private static final List<String> CAT_TAGS = List.of(
+    private static final List<String> QUIET_TAGS = List.of(
             "猫咪友好", "环境安静", "可放猫包", "少狗", "低噪音", "可进店", "独立角落", "不拥挤");
     private static final List<String> OTHER_TAGS = List.of(
             "小宠友好", "环境安静", "可带笼", "人流少");
@@ -64,11 +60,9 @@ public class PlaceController {
     public PlaceController(
             PetFriendlyPlaceRepository placeRepository,
             PlaceCommentRepository commentRepository,
-            PetRepository petRepository,
             CurrentUserService currentUserService) {
         this.placeRepository = placeRepository;
         this.commentRepository = commentRepository;
-        this.petRepository = petRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -245,28 +239,17 @@ public class PlaceController {
 
     private void populateUserContext(Model model, Authentication authentication) {
         String username = authentication == null ? "" : authentication.getName();
-        List<Pet> pets = username.isBlank() ? List.of() : petRepository.findByOwnerUsernameOrderByBirthdayDesc(username);
-        List<String> recommendedTags = recommendedTagsFor(pets);
+        List<String> recommendedTags = recommendedTagsForTravel();
         model.addAttribute("currentUsername", username);
         model.addAttribute("currentUserAdmin", isAdmin(authentication));
         model.addAttribute("recommendedTags", recommendedTags);
         model.addAttribute("placeTags", allTagsFor(recommendedTags));
     }
 
-    private List<String> recommendedTagsFor(List<Pet> pets) {
-        boolean hasDog = pets.stream().anyMatch(pet -> pet.getCategory() == PetCategory.DOG);
-        boolean hasCat = pets.stream().anyMatch(pet -> pet.getCategory() == PetCategory.CAT);
-        boolean hasOther = pets.stream().anyMatch(pet -> pet.getCategory() == PetCategory.OTHER);
+    private List<String> recommendedTagsForTravel() {
         java.util.LinkedHashSet<String> tags = new java.util.LinkedHashSet<>();
-        if (hasDog) {
-            tags.addAll(DOG_TAGS);
-        }
-        if (hasCat) {
-            tags.addAll(CAT_TAGS);
-        }
-        if (hasOther || tags.isEmpty()) {
-            tags.addAll(OTHER_TAGS);
-        }
+        tags.addAll(PET_FRIENDLY_TAGS);
+        tags.addAll(QUIET_TAGS);
         tags.addAll(BASE_TAGS);
         return List.copyOf(tags);
     }
@@ -274,8 +257,8 @@ public class PlaceController {
     private List<String> allTagsFor(List<String> recommendedTags) {
         java.util.LinkedHashSet<String> tags = new java.util.LinkedHashSet<>(recommendedTags);
         tags.addAll(BASE_TAGS);
-        tags.addAll(DOG_TAGS);
-        tags.addAll(CAT_TAGS);
+        tags.addAll(PET_FRIENDLY_TAGS);
+        tags.addAll(QUIET_TAGS);
         tags.addAll(OTHER_TAGS);
         return List.copyOf(tags);
     }

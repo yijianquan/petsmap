@@ -9,47 +9,12 @@ CREATE TABLE IF NOT EXISTS user_account (
     username VARCHAR(64) NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL,
+    nickname VARCHAR(64),
+    avatar_url VARCHAR(512),
+    avatar_data LONGBLOB,
+    avatar_content_type VARCHAR(64),
     PRIMARY KEY (id),
     UNIQUE KEY uk_user_account_username (username)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS pet (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    nickname VARCHAR(80) NOT NULL,
-    category VARCHAR(20) NOT NULL DEFAULT 'OTHER',
-    avatar_url VARCHAR(500),
-    avatar_content_type VARCHAR(100),
-    avatar_data LONGBLOB,
-    gender VARCHAR(20) NOT NULL,
-    birthday DATE NOT NULL,
-    owner_id BIGINT NOT NULL,
-    PRIMARY KEY (id),
-    KEY idx_pet_owner_id (owner_id),
-    CONSTRAINT fk_pet_owner
-        FOREIGN KEY (owner_id) REFERENCES user_account (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE pet
-    ADD COLUMN IF NOT EXISTS category VARCHAR(20) NOT NULL DEFAULT 'OTHER';
-
-ALTER TABLE pet
-    ADD COLUMN IF NOT EXISTS avatar_content_type VARCHAR(100);
-
-ALTER TABLE pet
-    ADD COLUMN IF NOT EXISTS avatar_data LONGBLOB;
-
-CREATE TABLE IF NOT EXISTS pet_calendar_event (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    pet_id BIGINT NOT NULL,
-    type VARCHAR(20) NOT NULL,
-    vaccine_category VARCHAR(80),
-    event_date DATE NOT NULL,
-    note VARCHAR(500),
-    PRIMARY KEY (id),
-    KEY idx_event_pet_id (pet_id),
-    KEY idx_event_date (event_date),
-    CONSTRAINT fk_event_pet
-        FOREIGN KEY (pet_id) REFERENCES pet (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pet_friendly_place (
@@ -68,46 +33,11 @@ CREATE TABLE IF NOT EXISTS pet_friendly_place (
         FOREIGN KEY (uploaded_by_id) REFERENCES user_account (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO user_account (username, password, role)
-SELECT 'admin', '$2a$10$4Cw7f6SxAIAZpLKw2cdHAO0DChfyz1mPglqJEmo7Tozk05LXMQnaS', 'ROLE_ADMIN'
+INSERT INTO user_account (username, password, role, nickname)
+SELECT 'admin', '$2a$10$4Cw7f6SxAIAZpLKw2cdHAO0DChfyz1mPglqJEmo7Tozk05LXMQnaS', 'ROLE_ADMIN', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM user_account WHERE username = 'admin'
 );
-
-INSERT INTO pet (nickname, avatar_url, gender, birthday, owner_id)
-SELECT
-    '奶糖',
-    'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=500&q=80',
-    'FEMALE',
-    DATE_SUB(CURDATE(), INTERVAL 2 YEAR),
-    ua.id
-FROM user_account ua
-WHERE ua.username = 'admin'
-  AND NOT EXISTS (
-      SELECT 1 FROM pet p WHERE p.nickname = '奶糖' AND p.owner_id = ua.id
-  );
-
-INSERT INTO pet_calendar_event (pet_id, type, vaccine_category, event_date, note)
-SELECT p.id, 'VACCINE', '狂犬疫苗', DATE_ADD(CURDATE(), INTERVAL 14 DAY), '提前一周预约附近宠物医院'
-FROM pet p
-JOIN user_account ua ON ua.id = p.owner_id
-WHERE ua.username = 'admin'
-  AND p.nickname = '奶糖'
-  AND NOT EXISTS (
-      SELECT 1 FROM pet_calendar_event e
-      WHERE e.pet_id = p.id AND e.type = 'VACCINE' AND e.vaccine_category = '狂犬疫苗'
-  );
-
-INSERT INTO pet_calendar_event (pet_id, type, vaccine_category, event_date, note)
-SELECT p.id, 'BATH', NULL, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '使用低敏沐浴露'
-FROM pet p
-JOIN user_account ua ON ua.id = p.owner_id
-WHERE ua.username = 'admin'
-  AND p.nickname = '奶糖'
-  AND NOT EXISTS (
-      SELECT 1 FROM pet_calendar_event e
-      WHERE e.pet_id = p.id AND e.type = 'BATH'
-  );
 
 INSERT INTO pet_friendly_place (name, type, address, latitude, longitude, description, uploaded_by_id)
 SELECT seed.name, seed.type, seed.address, seed.latitude, seed.longitude, seed.description, ua.id
