@@ -1,15 +1,15 @@
 <view class="page detail-page">
-  <view class="detail-head card">
-    <text class="type-pill">{{place.typeName || '地点'}}</text>
+  <view class="detail-head card" style="border-top-color: {{place.typeColor}};">
+    <text class="type-pill" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};">{{place.typeName || '地点'}}</text>
     <text class="place-name">{{place.name}}</text>
     <text class="place-address">{{place.address || '暂无地址'}}</text>
     <view class="score-row">
-      <text class="rating">★ {{place.ratingText || '暂无评分'}}</text>
+      <text class="rating" style="color: {{place.typeColor}};">★ {{place.ratingText || '暂无评分'}}</text>
       <text class="muted">{{place.commentCount || 0}} 条评论</text>
       <text class="muted">{{place.uploadedBy ? '由 ' + place.uploadedBy + ' 上传' : ''}}</text>
     </view>
     <view class="tag-line" wx:if="{{place.tags && place.tags.length}}">
-      <text wx:for="{{place.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>
+      <text wx:for="{{place.tags}}" wx:key="*this" class="mini-tag" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};">{{item}}</text>
     </view>
     <text wx:else class="tag-empty">暂无标签</text>
   </view>
@@ -23,12 +23,12 @@
   <view class="card info-card">
     <view class="row between">
       <text class="section-title">评论</text>
-      <view class="small-btn" bindtap="openComment">写评论</view>
+      <view class="small-btn" style="background: {{place.typeColor}}; box-shadow: 0 12rpx 28rpx {{place.typeSoftColor}};" bindtap="openComment">写评论</view>
     </view>
     <view wx:for="{{comments}}" wx:key="id" class="comment-item">
       <view class="row between">
         <text class="comment-user">{{item.username}}</text>
-        <text class="rating">{{item.stars}}</text>
+        <text class="rating" style="color: {{place.typeColor}};">{{item.stars}}</text>
       </view>
       <text class="body-text">{{item.content}}</text>
       <image wx:if="{{item.imageUrl}}" class="comment-image" src="{{baseUrl + item.imageUrl}}" mode="aspectFill" />
@@ -46,15 +46,20 @@
       <view class="field">
         <text class="field-label">评分</text>
         <view>
-          <text wx:for="{{ratingOptions}}" wx:key="value" class="pill {{commentForm.rating === item.value ? 'active' : ''}}" data-rating="{{item.value}}" bindtap="selectRating">{{item.label}}</text>
+          <text wx:for="{{ratingOptions}}"
+                wx:key="value"
+                class="pill {{commentForm.rating === item.value ? 'active' : ''}}"
+                style="{{commentForm.rating === item.value ? 'background: ' + place.typeColor + '; border-color: ' + place.typeColor + '; color: #ffffff;' : ''}}"
+                data-rating="{{item.value}}"
+                bindtap="selectRating">{{item.label}}</text>
         </view>
       </view>
       <view class="field">
         <text class="field-label">评论</text>
         <textarea class="textarea" value="{{commentForm.content}}" placeholder="分享带宠体验、停车、是否可进店..." bindinput="onCommentContent" />
       </view>
-      <view class="ghost-btn detail-upload-btn" bindtap="chooseCommentImage">{{commentForm.imagePath ? '已选择图片，点击更换' : '上传图片'}}</view>
-      <view class="primary-btn save-btn" bindtap="submitComment">提交评论</view>
+      <view class="ghost-btn detail-upload-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}}; border-color: {{place.typeSoftColor}};" bindtap="chooseCommentImage">{{commentForm.imagePath ? '已选择图片，点击更换' : '上传图片'}}</view>
+      <view class="primary-btn save-btn" style="background: {{place.typeColor}}; box-shadow: 0 14rpx 32rpx {{place.typeSoftColor}};" bindtap="submitComment">提交评论</view>
     </view>
   </view>
 </view>

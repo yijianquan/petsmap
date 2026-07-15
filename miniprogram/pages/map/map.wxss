@@ -184,8 +184,8 @@
 }
 
 .filter-pill.active {
-  background: #111111;
   color: #ffffff;
+  box-shadow: 0 10rpx 24rpx rgba(20, 20, 20, 0.12);
 }
 
 .place-scroll {
@@ -200,6 +200,7 @@
 .place-card {
   padding: 20rpx 24rpx;
   margin-bottom: 16rpx;
+  border-left: 8rpx solid #178f5d;
   border-radius: 22rpx;
   background: #ffffff;
   box-shadow: 0 10rpx 26rpx rgba(20, 20, 20, 0.06);
@@ -261,15 +262,27 @@
 
 .place-meta-text {
   display: flex;
+  align-items: center;
   flex: 1;
   min-width: 0;
-  gap: 16rpx;
+  gap: 12rpx;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .rating {
   color: #9b6a12;
+}
+
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 36rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  font-size: 21rpx;
+  font-weight: 800;
+  line-height: 36rpx;
 }
 
 .tag-line {

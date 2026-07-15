@@ -1,10 +1,12 @@
 <view class="map-page">
-  <map class="main-map"
+  <map id="mainMap"
+       class="main-map"
        latitude="{{latitude}}"
        longitude="{{longitude}}"
        scale="{{mapScale}}"
        markers="{{markers}}"
        show-location
+       bindregionchange="onRegionChange"
        bindmarkertap="onMarkerTap"
        bindcallouttap="onMarkerTap"></map>
 
@@ -34,12 +36,22 @@
 
     <view class="filter-wrap">
       <scroll-view scroll-x class="filter-scroll">
-        <view wx:for="{{typeFilters}}" wx:key="value" class="filter-pill {{item.active ? 'active' : ''}}" data-type="{{item.value}}" bindtap="selectType">{{item.label}}</view>
+        <view wx:for="{{typeFilters}}"
+              wx:key="value"
+              class="filter-pill {{item.active ? 'active' : ''}}"
+              style="color: {{item.active ? '#ffffff' : item.color}}; background: {{item.active ? item.color : item.softColor}};"
+              data-type="{{item.value}}"
+              bindtap="selectType">{{item.label}}</view>
       </scroll-view>
     </view>
 
     <scroll-view scroll-y class="place-scroll">
-      <view wx:for="{{displayedPlaces}}" wx:key="id" class="place-card" data-id="{{item.id}}" bindtap="focusPlace">
+      <view wx:for="{{displayedPlaces}}"
+            wx:key="id"
+            class="place-card"
+            style="border-left-color: {{item.typeColor}};"
+            data-id="{{item.id}}"
+            bindtap="focusPlace">
         <view class="place-top">
           <view class="place-main">
             <text class="place-name">{{item.name}}</text>
@@ -51,9 +63,12 @@
           <view class="place-meta-text">
             <text class="rating">★ {{item.ratingText}}</text>
             <text>{{item.commentCount}}条评论</text>
-            <text>{{item.typeName}}</text>
+            <text class="type-chip" style="color: {{item.typeColor}}; background: {{item.typeSoftColor}};">{{item.typeName}}</text>
           </view>
-          <view class="detail-inline-btn" catchtap="openPlaceDetail" data-id="{{item.id}}">详情</view>
+          <view class="detail-inline-btn"
+                style="color: {{item.typeColor}}; background: {{item.typeSoftColor}};"
+                catchtap="openPlaceDetail"
+                data-id="{{item.id}}">详情</view>
         </view>
         <view class="tag-line" wx:if="{{drawerExpanded}}">
           <text wx:for="{{item.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>

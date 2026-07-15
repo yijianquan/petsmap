@@ -1804,9 +1804,84 @@ textarea:focus {
     gap: 14px;
 }
 
+.crawl-source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.crawl-source-card {
+    display: grid;
+    align-content: space-between;
+    gap: 14px;
+    min-height: 178px;
+    border: 1px solid #ececea;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fafaf8;
+}
+
+.crawl-source-card strong {
+    display: block;
+    margin: 7px 0 8px;
+    color: #171717;
+    font-size: 18px;
+}
+
+.crawl-source-card p {
+    margin: 0;
+    line-height: 1.55;
+}
+
+.crawl-source-name,
+.crawl-source-tags {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.crawl-source-name {
+    min-height: 28px;
+    padding: 6px 10px;
+    background: #eeeeeb;
+    color: #171717;
+}
+
+.active-source {
+    border-color: #cfe4d7;
+    background: #f5fbf7;
+}
+
+.active-source .crawl-source-name {
+    background: #178f5d;
+    color: #ffffff;
+}
+
+.pending-source {
+    opacity: 0.82;
+}
+
+.crawl-source-tags {
+    min-height: 30px;
+    padding: 7px 10px;
+    background: #ffffff;
+    color: #62615d;
+}
+
+.pending-source .admin-secondary {
+    justify-self: start;
+    min-height: 34px;
+    padding: 8px 12px;
+}
+
 .crawl-toolbar {
     display: grid;
-    grid-template-columns: 300px 112px 112px;
+    grid-template-columns: 360px 112px;
     align-items: end;
     gap: 12px;
 }

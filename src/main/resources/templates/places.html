@@ -307,12 +307,12 @@
     const mapSearchButton = document.getElementById("mapSearchButton");
     const tagOptions = /*[[${placeTags}]]*/ [];
     const recommendedTags = /*[[${recommendedTags}]]*/ [];
-    const coreFilterTags = ["室内可进", "停车", "饮水", "大狗友好", "猫咪友好", "环境安静", "草坪大", "可预约", "免费", "收费透明"];
+    const coreFilterTags = ["室内可进", "停车", "饮水", "大狗友好", "猫咪友好", "环境安静", "草坪大", "可预约", "免费"];
     const tagGroups = [
         {name: "宠物限制", tags: ["大狗友好", "猫咪友好", "可带猫", "可放猫包", "可带笼", "可下地", "需牵引", "少狗"]},
         {name: "环境体验", tags: ["环境安静", "阴凉多", "夜间照明", "人流少", "无小孩", "不拥挤", "草坪大", "有围栏"]},
         {name: "设施服务", tags: ["停车", "饮水", "电梯友好", "拾便方便", "可预约", "外摆友好", "室内可进", "可进店"]},
-        {name: "费用规则", tags: ["免费", "收费透明", "仅外摆", "需提前确认"]}
+        {name: "费用规则", tags: ["免费", "仅外摆", "需提前确认"]}
     ];
     const availableTags = Array.from(new Set([...tagOptions, ...tagGroups.flatMap((group) => group.tags)]));
     const tagsInput = document.getElementById("placeTags");
@@ -947,7 +947,7 @@
         setBooleanInput("leashRequired", selectedTags.has("需牵引"));
         setBooleanInput("waterAvailable", selectedTags.has("饮水"));
         setBooleanInput("parkingAvailable", selectedTags.has("停车") || selectedTags.has("可停车"));
-        setBooleanInput("feeRequired", selectedTags.has("收费透明"));
+        setBooleanInput("feeRequired", false);
     }
 
     function setBooleanInput(id, value) {
@@ -968,7 +968,6 @@
         if (place?.leashRequired) tags.push("需牵引");
         if (place?.waterAvailable) tags.push("饮水");
         if (place?.parkingAvailable) tags.push("停车");
-        if (place?.feeRequired) tags.push("收费透明");
         return Array.from(new Set(tags));
     }
 
@@ -984,7 +983,7 @@
             const visibleTags = tags.slice(0, 5);
             visibleTags.forEach((tag) => {
                 const chip = document.createElement("span");
-                chip.className = tag === "需牵引" || tag === "收费透明" ? "feature-chip caution" : "feature-chip";
+                chip.className = tag === "需牵引" ? "feature-chip caution" : "feature-chip";
                 chip.textContent = tag;
                 container.appendChild(chip);
             });

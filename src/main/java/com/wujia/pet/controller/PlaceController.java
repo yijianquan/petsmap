@@ -49,7 +49,7 @@ public class PlaceController {
     private static final int COMMENT_IMAGE_MAX_SIZE = 900;
     private static final float COMMENT_IMAGE_QUALITY = 0.78f;
     private static final List<String> BASE_TAGS = List.of(
-            "停车", "饮水", "室内可进", "外摆友好", "可预约", "免费", "收费透明", "电梯友好", "阴凉多", "夜间照明");
+            "停车", "饮水", "室内可进", "外摆友好", "可预约", "免费", "电梯友好", "阴凉多", "夜间照明");
     private static final List<String> PET_FRIENDLY_TAGS = List.of(
             "大狗友好", "无小孩", "有围栏", "草坪大", "可下地", "需牵引", "拾便方便", "同伴多");
     private static final List<String> QUIET_TAGS = List.of(

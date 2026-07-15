@@ -27,6 +27,21 @@ public interface PetFriendlyPlaceRepository extends JpaRepository<PetFriendlyPla
             @Param("type") com.wujia.pet.entity.PlaceType type,
             Pageable pageable);
 
+    @Query("""
+            select place from PetFriendlyPlace place
+            where place.latitude is not null
+              and place.longitude is not null
+              and place.latitude between :minLat and :maxLat
+              and place.longitude between :minLng and :maxLng
+            order by place.id desc
+            """)
+    List<PetFriendlyPlace> findInBounds(
+            @Param("minLat") Double minLat,
+            @Param("maxLat") Double maxLat,
+            @Param("minLng") Double minLng,
+            @Param("maxLng") Double maxLng,
+            Pageable pageable);
+
     List<PetFriendlyPlace> findTop10ByNameContainingOrderByIdDesc(String name);
 
     long countByCityCode(String cityCode);

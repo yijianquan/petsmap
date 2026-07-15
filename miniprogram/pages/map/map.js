@@ -3,14 +3,34 @@ const { request, ensureLogin, baseUrl, asList } = require("../../utils/request")
 const defaultLocation = { latitude: 31.2304, longitude: 121.4737, label: "默认位置：上海" };
 const defaultCityLocation = { name: "上海市", latitude: defaultLocation.latitude, longitude: defaultLocation.longitude };
 const markerIcons = {
-  RESTAURANT: "/images/marker-restaurant.png",
-  MALL: "/images/marker-mall.png",
-  HOTEL: "/images/marker-hotel.png",
-  PARK: "/images/marker-park.png",
-  SCENIC: "/images/marker-park.png",
-  LAWN: "/images/marker-park.png",
-  PET_STORE: "/images/marker-pet-store.png",
-  HOSPITAL: "/images/marker-hospital.png"
+  RESTAURANT: "./marker-restaurant.png",
+  MALL: "./marker-mall.png",
+  HOTEL: "./marker-hotel.png",
+  PARK: "./marker-park.png",
+  SCENIC: "./marker-park.png",
+  LAWN: "./marker-park.png",
+  PET_STORE: "./marker-pet-store.png",
+  HOSPITAL: "./marker-hospital.png"
+};
+const typeColors = {
+  RESTAURANT: "#F28C28",
+  MALL: "#111111",
+  HOTEL: "#2F80ED",
+  PARK: "#178F5D",
+  SCENIC: "#178F5D",
+  LAWN: "#178F5D",
+  PET_STORE: "#8E5CF7",
+  HOSPITAL: "#E84D4F"
+};
+const typeSoftColors = {
+  RESTAURANT: "#FFF2E3",
+  MALL: "#F1F1F1",
+  HOTEL: "#EAF3FF",
+  PARK: "#EAF7F0",
+  SCENIC: "#EAF7F0",
+  LAWN: "#EAF7F0",
+  PET_STORE: "#F3EEFF",
+  HOSPITAL: "#FFEEEE"
 };
 const cityCenters = {
   上海市: defaultCityLocation,
@@ -27,7 +47,7 @@ Page({
   data: {
     latitude: defaultLocation.latitude,
     longitude: defaultLocation.longitude,
-    mapScale: 12,
+    mapScale: 14,
     city: "上海市",
     locationLabel: defaultLocation.label,
     searchLabel: "搜索目的地 / 地点",
@@ -66,6 +86,7 @@ Page({
         destination,
         latitude: destination.latitude,
         longitude: destination.longitude,
+        mapScale: 14,
         locationLabel: `目的地：${destination.name}`,
         searchLabel: destination.name,
         keyword: searchPlace
@@ -82,6 +103,7 @@ Page({
         locationLabel: city,
         latitude: cityLocation.latitude,
         longitude: cityLocation.longitude,
+        mapScale: 14,
         destination: null
       });
       this.loadOptions();
@@ -94,7 +116,8 @@ Page({
       searchLabel: searchPlace || "搜索目的地 / 地点",
       locationLabel: defaultLocation.label,
       latitude: defaultLocation.latitude,
-      longitude: defaultLocation.longitude
+      longitude: defaultLocation.longitude,
+      mapScale: 14
     });
     this.loadOptions();
     this.locate();
@@ -120,6 +143,7 @@ Page({
         this.setData({
           latitude: res.latitude,
           longitude: res.longitude,
+          mapScale: 14,
           locationLabel: "已使用当前位置排序"
         });
         this.loadPlaces();
@@ -135,6 +159,7 @@ Page({
           city: "上海市",
           latitude: defaultLocation.latitude,
           longitude: defaultLocation.longitude,
+          mapScale: 14,
           locationLabel: defaultLocation.label
         });
         this.loadPlaces();
@@ -144,7 +169,9 @@ Page({
 
   async loadPlaces() {
     try {
-      const places = await request({ url: "/miniapp/api/places" });
+      const bounds = await this.currentMapBounds();
+      const query = `minLat=${encodeURIComponent(bounds.minLat)}&maxLat=${encodeURIComponent(bounds.maxLat)}&minLng=${encodeURIComponent(bounds.minLng)}&maxLng=${encodeURIComponent(bounds.maxLng)}`;
+      const places = await request({ url: `/miniapp/api/places?${query}` });
       const enriched = asList(places, "地点数据格式异常").map((place) => this.withDistance(place));
       enriched.sort((a, b) => (a.distance || 999999) - (b.distance || 999999) || (b.averageRating || 0) - (a.averageRating || 0));
       this.setData({ places: enriched });
@@ -154,15 +181,51 @@ Page({
     }
   },
 
+  currentMapBounds() {
+    return new Promise((resolve) => {
+      const fallback = boundsAround(this.data.latitude, this.data.longitude);
+      const mapContext = wx.createMapContext("mainMap", this);
+      mapContext.getRegion({
+        success: (res) => {
+          if (!res || !res.southwest || !res.northeast) {
+            resolve(fallback);
+            return;
+          }
+          resolve({
+            minLat: res.southwest.latitude,
+            maxLat: res.northeast.latitude,
+            minLng: res.southwest.longitude,
+            maxLng: res.northeast.longitude
+          });
+        },
+        fail: () => resolve(fallback)
+      });
+    });
+  },
+
+  onRegionChange(event) {
+    if (event.type !== "end" || this.data.showForm) {
+      return;
+    }
+    if (this.regionTimer) {
+      clearTimeout(this.regionTimer);
+    }
+    this.regionTimer = setTimeout(() => this.loadPlaces(), 360);
+  },
+
   withDistance(place) {
+    const typeColor = typeColors[place.type] || "#6B7280";
+    const typeSoftColor = typeSoftColors[place.type] || "#F1F3F5";
     if (place.latitude == null || place.longitude == null) {
-      return { ...place, distance: 999999, distanceText: "未标坐标" };
+      return { ...place, distance: 999999, distanceText: "未标坐标", typeColor, typeSoftColor };
     }
     const distance = calcDistance(this.data.latitude, this.data.longitude, place.latitude, place.longitude);
     return {
       ...place,
       distance,
-      distanceText: distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`
+      distanceText: distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`,
+      typeColor,
+      typeSoftColor
     };
   },
 
@@ -184,9 +247,9 @@ Page({
           latitude: place.latitude,
           longitude: place.longitude,
           title: place.name,
-          iconPath: markerIcons[place.type] || "/images/marker-default.png",
-          width: 34,
-          height: 34,
+          iconPath: markerIcons[place.type] || "./marker-default.png",
+          width: 43,
+          height: 43,
           anchor: { x: 0.5, y: 1 },
           callout: {
             content: place.name,
@@ -255,7 +318,7 @@ Page({
     const id = Number(event.currentTarget.dataset.id);
     const place = this.data.places.find((item) => Number(item.id) === id);
     if (place && place.latitude != null && place.longitude != null) {
-      this.setData({ latitude: place.latitude, longitude: place.longitude });
+      this.setData({ latitude: place.latitude, longitude: place.longitude, mapScale: 14 });
     }
   },
 
@@ -470,7 +533,7 @@ function buildTagGroups(tags, selected) {
   const groups = [
     { name: "宠物友好", names: ["大狗友好", "猫咪友好", "无小孩", "环境安静"] },
     { name: "设施服务", names: ["停车", "饮水", "室内可进", "可进店", "草坪大", "阴凉多", "夜间照明"] },
-    { name: "规则费用", names: ["免费", "收费透明", "需牵引", "可预约"] }
+    { name: "规则费用", names: ["免费", "需牵引", "可预约"] }
   ];
   const used = new Set();
   const result = groups
@@ -497,7 +560,9 @@ function buildTypeFilters(types, selectedTypes) {
   const selected = new Set(selectedTypes || []);
   return (types || []).map((type) => ({
     ...type,
-    active: selected.has(type.value)
+    active: selected.has(type.value),
+    color: typeColors[type.value] || "#6B7280",
+    softColor: typeSoftColors[type.value] || "#F1F3F5"
   }));
 }
 
@@ -508,6 +573,17 @@ function calcDistance(lat1, lng1, lat2, lng2) {
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
     + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function boundsAround(latitude, longitude) {
+  const lat = Number(latitude) || defaultLocation.latitude;
+  const lng = Number(longitude) || defaultLocation.longitude;
+  return {
+    minLat: lat - 0.025,
+    maxLat: lat + 0.025,
+    minLng: lng - 0.025,
+    maxLng: lng + 0.025
+  };
 }
 
 function toRad(value) {

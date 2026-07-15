@@ -1,5 +1,27 @@
 const { request, upload, ensureLogin, baseUrl } = require("../../utils/request");
 
+const typeColors = {
+  RESTAURANT: "#F28C28",
+  MALL: "#111111",
+  HOTEL: "#2F80ED",
+  PARK: "#178F5D",
+  SCENIC: "#178F5D",
+  LAWN: "#178F5D",
+  PET_STORE: "#8E5CF7",
+  HOSPITAL: "#E84D4F"
+};
+
+const typeSoftColors = {
+  RESTAURANT: "#FFF2E3",
+  MALL: "#F1F1F1",
+  HOTEL: "#EAF3FF",
+  PARK: "#EAF7F0",
+  SCENIC: "#EAF7F0",
+  LAWN: "#EAF7F0",
+  PET_STORE: "#F3EEFF",
+  HOSPITAL: "#FFEEEE"
+};
+
 Page({
   data: {
     id: null,
@@ -27,8 +49,9 @@ Page({
   },
 
   async load() {
-    const place = await request({ url: `/miniapp/api/places/${this.data.id}` });
+    const rawPlace = await request({ url: `/miniapp/api/places/${this.data.id}` });
     const comments = await request({ url: `/miniapp/api/places/${this.data.id}/comments` });
+    const place = decoratePlace(rawPlace || {});
     this.setData({ place, comments: comments || [] });
   },
 
@@ -92,3 +115,12 @@ Page({
     this.load();
   }
 });
+
+function decoratePlace(place) {
+  const type = place.type || "PARK";
+  return {
+    ...place,
+    typeColor: typeColors[type] || "#178F5D",
+    typeSoftColor: typeSoftColors[type] || "#EAF7F0"
+  };
+}

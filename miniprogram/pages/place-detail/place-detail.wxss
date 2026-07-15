@@ -4,6 +4,7 @@
 
 .detail-head {
   margin-top: 8rpx;
+  border-top: 8rpx solid #178f5d;
 }
 
 .type-pill {
@@ -11,9 +12,10 @@
   height: 46rpx;
   padding: 0 18rpx;
   border-radius: 999rpx;
-  background: #111111;
-  color: #ffffff;
+  background: #eaf7f0;
+  color: #178f5d;
   font-size: 22rpx;
+  font-weight: 800;
   line-height: 46rpx;
 }
 
