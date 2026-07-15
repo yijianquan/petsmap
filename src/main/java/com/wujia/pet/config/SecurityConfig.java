@@ -21,11 +21,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(new AntPathRequestMatcher("/miniapp/**")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/css/**", "/img/**", "/miniapp/**", "/login", "/register").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers("/css/**", "/img/**", "/miniapp/**", "/login").permitAll()
+                        .anyRequest().hasRole("ADMIN"))
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/admin", true)
                         .permitAll())
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")

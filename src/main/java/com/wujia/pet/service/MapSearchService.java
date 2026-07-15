@@ -165,7 +165,7 @@ public class MapSearchService {
                         place.getAddress(),
                         place.getLatitude(),
                         place.getLongitude(),
-                        place.getType(),
+                place.getType().categoryType(),
                         "local"))
                 .toList();
     }
@@ -182,13 +182,21 @@ public class MapSearchService {
                 address,
                 latitude,
                 longitude,
-                type,
-                type.getDisplayName(),
+                type.categoryType(),
+                type.categoryType().getDisplayName(),
                 provider);
     }
 
     private PlaceType inferType(String text) {
         String value = text == null ? "" : text.toLowerCase();
+        if (value.contains("宠物店") || value.contains("宠物用品") || value.contains("宠物生活馆")
+                || value.contains("pet store") || value.contains("pet shop")) {
+            return PlaceType.PET_STORE;
+        }
+        if (value.contains("宠物医院") || value.contains("动物医院") || value.contains("兽医")
+                || value.contains("veterinary") || value.contains("vets") || value.contains("vet")) {
+            return PlaceType.HOSPITAL;
+        }
         if (value.contains("酒店") || value.contains("hotel")) {
             return PlaceType.HOTEL;
         }
@@ -199,10 +207,10 @@ public class MapSearchService {
             return PlaceType.MALL;
         }
         if (value.contains("景点") || value.contains("观景") || value.contains("风景") || value.contains("attraction")) {
-            return PlaceType.SCENIC;
+            return PlaceType.PARK;
         }
         if (value.contains("草坪") || value.contains("lawn") || value.contains("绿地")) {
-            return PlaceType.LAWN;
+            return PlaceType.PARK;
         }
         return PlaceType.PARK;
     }

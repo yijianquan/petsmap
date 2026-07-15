@@ -68,13 +68,16 @@ public class PlaceController {
 
     @GetMapping("/places")
     public String places(Model model, Authentication authentication) {
+        if (isAdmin(authentication)) {
+            return "redirect:/admin/places";
+        }
         List<PetFriendlyPlace> places = placeRepository.findAllByOrderByIdDesc();
         Map<Long, List<PlaceComment>> commentsByPlaceId = loadCommentsByPlace(places);
         applyRatingSummary(places, commentsByPlaceId);
         model.addAttribute("places", places);
         model.addAttribute("commentsByPlaceId", commentsByPlaceId);
         model.addAttribute("place", new PetFriendlyPlace());
-        model.addAttribute("placeTypes", PlaceType.values());
+        model.addAttribute("placeTypes", PlaceType.visibleValues());
         populateUserContext(model, authentication);
         return "places";
     }
@@ -87,7 +90,7 @@ public class PlaceController {
             Authentication authentication) {
         if (bindingResult.hasErrors()) {
             populatePlacesModel(model, authentication);
-            model.addAttribute("placeTypes", PlaceType.values());
+            model.addAttribute("placeTypes", PlaceType.visibleValues());
             model.addAttribute("errorMessage", "地点信息填写不完整，请检查名称等必填项。");
             return "places";
         }
@@ -105,7 +108,7 @@ public class PlaceController {
             Authentication authentication) {
         if (bindingResult.hasErrors()) {
             populatePlacesModel(model, authentication);
-            model.addAttribute("placeTypes", PlaceType.values());
+            model.addAttribute("placeTypes", PlaceType.visibleValues());
             model.addAttribute("errorMessage", "地点信息填写不完整，请检查名称等必填项。");
             return "places";
         }

@@ -14,7 +14,7 @@
     <groupId>com.wujia</groupId>
     <artifactId>wu-jia-you-chong</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>吾家有宠</name>
+    <name>宠趣行</name>
     <description>Pet family web application, ready for future WeChat mini program APIs.</description>
 
     <properties>

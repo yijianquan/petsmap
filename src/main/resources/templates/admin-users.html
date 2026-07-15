@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣行 - 微信用户</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-body">
+<header class="admin-topbar">
+    <a class="admin-brand" th:href="@{/admin}">宠趣行后台</a>
+    <nav class="admin-nav">
+        <a th:href="@{/admin}">总览</a>
+        <a th:href="@{/admin/places}">地点管理</a>
+        <a th:href="@{/admin/areas}">城市管理</a>
+        <a class="active" th:href="@{/admin/users}">微信用户</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="admin-logout" type="submit">退出</button>
+    </form>
+</header>
+
+<main class="admin-page">
+    <section class="admin-page-title">
+        <span th:text="${users.totalElements + ' 个用户'}">0 个用户</span>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-empty" th:if="${#lists.isEmpty(users.content)}">目前还没有微信用户。</div>
+        <div class="admin-table-wrap" th:if="${!#lists.isEmpty(users.content)}">
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th>头像</th>
+                    <th>昵称</th>
+                    <th>用户名</th>
+                    <th>上传地点</th>
+                    <th>评论</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="user : ${users.content}">
+                    <td>
+                        <img class="admin-table-avatar" th:if="${user.hasAvatarData()}" th:src="@{/miniapp/api/users/{id}/avatar(id=${user.id})}" alt="">
+                        <div th:unless="${user.hasAvatarData()}" class="admin-avatar-fallback">宠</div>
+                    </td>
+                    <td th:text="${user.nickname == null || #strings.isEmpty(user.nickname) ? '-' : user.nickname}">昵称</td>
+                    <td th:text="${user.username}">username</td>
+                    <td th:text="${placeCounts[user.username] ?: 0}">0</td>
+                    <td th:text="${commentCounts[user.username] ?: 0}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" th:if="${totalPages > 1}">
+            <a class="admin-secondary-link"
+               th:classappend="${currentPage == 0} ? ' disabled'"
+               th:href="@{/admin/users(page=${currentPage - 1})}">上一页</a>
+            <span th:text="${currentPage + 1 + ' / ' + totalPages}">1 / 1</span>
+            <a class="admin-secondary-link"
+               th:classappend="${currentPage + 1 >= totalPages} ? ' disabled'"
+               th:href="@{/admin/users(page=${currentPage + 1})}">下一页</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

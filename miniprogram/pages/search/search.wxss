@@ -1,0 +1,84 @@
+.search-page {
+  min-height: 100vh;
+  padding: 24rpx;
+  box-sizing: border-box;
+  background: #f5f1ea;
+}
+
+.search-top {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  height: 78rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 22rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.search-icon {
+  margin-right: 12rpx;
+  color: #81786d;
+  font-size: 30rpx;
+}
+
+.search-input {
+  flex: 1;
+  height: 78rpx;
+  font-size: 28rpx;
+}
+
+.cancel {
+  color: #111111;
+  font-size: 28rpx;
+}
+
+.mode-tabs {
+  display: flex;
+  margin: 28rpx 0 20rpx;
+  padding: 8rpx;
+  border-radius: 999rpx;
+  background: #ebe7df;
+}
+
+.mode-tab {
+  flex: 1;
+  height: 64rpx;
+  border-radius: 999rpx;
+  color: #81786d;
+  text-align: center;
+  font-size: 27rpx;
+  line-height: 64rpx;
+}
+
+.mode-tab.active {
+  background: #111111;
+  color: #ffffff;
+}
+
+.result-card {
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 22rpx;
+  background: #ffffff;
+}
+
+.result-title {
+  display: block;
+  color: #111111;
+  font-size: 31rpx;
+  font-weight: 800;
+}
+
+.result-subtitle {
+  display: block;
+  margin-top: 10rpx;
+  color: #81786d;
+  font-size: 24rpx;
+}

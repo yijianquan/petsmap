@@ -1,0 +1,60 @@
+<view class="page detail-page">
+  <view class="detail-head card">
+    <text class="type-pill">{{place.typeName || '地点'}}</text>
+    <text class="place-name">{{place.name}}</text>
+    <text class="place-address">{{place.address || '暂无地址'}}</text>
+    <view class="score-row">
+      <text class="rating">★ {{place.ratingText || '暂无评分'}}</text>
+      <text class="muted">{{place.commentCount || 0}} 条评论</text>
+      <text class="muted">{{place.uploadedBy ? '由 ' + place.uploadedBy + ' 上传' : ''}}</text>
+    </view>
+    <view class="tag-line" wx:if="{{place.tags && place.tags.length}}">
+      <text wx:for="{{place.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>
+    </view>
+    <text wx:else class="tag-empty">暂无标签</text>
+  </view>
+
+  <view class="card info-card">
+    <text class="section-title">地点说明</text>
+    <text class="body-text">{{place.description || '暂无说明。'}}</text>
+    <text wx:if="{{place.policyNote}}" class="body-text note">{{place.policyNote}}</text>
+  </view>
+
+  <view class="card info-card">
+    <view class="row between">
+      <text class="section-title">评论</text>
+      <view class="small-btn" bindtap="openComment">写评论</view>
+    </view>
+    <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+      <view class="row between">
+        <text class="comment-user">{{item.username}}</text>
+        <text class="rating">{{item.stars}}</text>
+      </view>
+      <text class="body-text">{{item.content}}</text>
+      <image wx:if="{{item.imageUrl}}" class="comment-image" src="{{baseUrl + item.imageUrl}}" mode="aspectFill" />
+      <text class="muted comment-time">{{item.createdAt}}</text>
+    </view>
+    <view wx:if="{{comments.length === 0}}" class="empty">还没有评论。</view>
+  </view>
+
+  <view wx:if="{{showComment}}" class="sheet-mask" bindtap="closeComment">
+    <view class="sheet" catchtap="noop">
+      <view class="row between">
+        <text class="sheet-title">写评论</text>
+        <text class="close" bindtap="closeComment">×</text>
+      </view>
+      <view class="field">
+        <text class="field-label">评分</text>
+        <view>
+          <text wx:for="{{ratingOptions}}" wx:key="value" class="pill {{commentForm.rating === item.value ? 'active' : ''}}" data-rating="{{item.value}}" bindtap="selectRating">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="field">
+        <text class="field-label">评论</text>
+        <textarea class="textarea" value="{{commentForm.content}}" placeholder="分享带宠体验、停车、是否可进店..." bindinput="onCommentContent" />
+      </view>
+      <view class="ghost-btn detail-upload-btn" bindtap="chooseCommentImage">{{commentForm.imagePath ? '已选择图片，点击更换' : '上传图片'}}</view>
+      <view class="primary-btn save-btn" bindtap="submitComment">提交评论</view>
+    </view>
+  </view>
+</view>

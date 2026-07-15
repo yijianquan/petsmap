@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>吾家有宠 - 登录</title>
+    <title>宠趣行 - 登录</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="login-page">
@@ -23,9 +23,9 @@
     <section class="login-panel login-panel-with-visual">
         <div class="login-visual">
             <div class="login-visual-copy">
-            <p class="eyebrow">吾家有宠</p>
-            <h1>记录宠物友好</h1>
-            <p>从日常照护到周边探索，把家里的小朋友安排得妥妥帖帖。</p>
+            <p class="eyebrow">宠趣行</p>
+            <h1>后台管理</h1>
+            <p>管理宠物友好地点、微信用户和评论内容。</p>
             </div>
         </div>
         <form th:action="@{/login}" method="post" class="form-stack">
@@ -38,11 +38,10 @@
                 密码
                 <input name="password" type="password" autocomplete="current-password" required>
             </label>
+            <p class="muted">默认账号：admin / admin123</p>
             <p class="alert error" th:if="${param.error}">用户名或密码不正确</p>
             <p class="alert success" th:if="${param.logout}">已退出登录</p>
-            <p class="alert success" th:if="${param.registered}">注册成功，请登录</p>
             <button class="primary-button" type="submit">登录</button>
-            <a class="auth-link" th:href="@{/register}">还没有账号？注册</a>
         </form>
     </section>
 </main>

@@ -1,0 +1,221 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-panel {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 30rpx;
+  border-radius: 32rpx;
+  background: #ffffff;
+  box-shadow: 0 18rpx 50rpx rgba(20, 20, 20, 0.065);
+}
+
+.profile-panel.clickable {
+  transition: opacity 0.18s ease;
+}
+
+.profile-panel.clickable:active {
+  opacity: 0.78;
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 32rpx;
+  flex: 0 0 auto;
+}
+
+.default-avatar {
+  background: #178f5d;
+  color: #ffffff;
+  text-align: center;
+  line-height: 112rpx;
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.username {
+  display: block;
+  margin-bottom: 8rpx;
+  color: #111111;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
+.account-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 34rpx 4rpx 18rpx;
+}
+
+.uploaded-list {
+  flex: 1;
+}
+
+.section-title {
+  color: #111111;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.section-count {
+  color: #81786d;
+  font-size: 24rpx;
+}
+
+.place-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+  padding: 26rpx;
+  border-radius: 26rpx;
+  background: #ffffff;
+  box-shadow: 0 14rpx 40rpx rgba(20, 20, 20, 0.055);
+}
+
+.place-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-name {
+  display: block;
+  overflow: hidden;
+  color: #111111;
+  font-size: 31rpx;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-address {
+  display: block;
+  overflow: hidden;
+  margin-top: 8rpx;
+  color: #81786d;
+  font-size: 24rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-meta {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  color: #9a9186;
+  font-size: 23rpx;
+}
+
+.arrow {
+  color: #b6ada2;
+  font-size: 48rpx;
+  line-height: 1;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 78rpx;
+  margin-top: auto;
+  margin-bottom: calc(18rpx + env(safe-area-inset-bottom));
+  border-radius: 999rpx;
+  background: #fff1f0;
+  color: #b42318;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.sheet {
+  width: 100%;
+  padding: 30rpx 30rpx calc(46rpx + env(safe-area-inset-bottom));
+  border-radius: 34rpx 34rpx 0 0;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.sheet-title {
+  color: #111111;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.close {
+  color: #81786d;
+  font-size: 52rpx;
+  line-height: 1;
+}
+
+.editor-avatar-btn {
+  width: 132rpx;
+  height: 132rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 34rpx auto 8rpx;
+  padding: 0;
+  border-radius: 38rpx;
+  background: transparent;
+  overflow: hidden;
+}
+
+.editor-avatar-btn::after {
+  border: 0;
+}
+
+.editor-avatar {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 38rpx;
+  flex: 0 0 auto;
+}
+
+.editor-avatar.default-avatar {
+  line-height: 132rpx;
+  font-size: 48rpx;
+}
+
+.profile-input {
+  text-align: center;
+}
+
+.primary-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 82rpx;
+  margin-top: 28rpx;
+  border-radius: 999rpx;
+  background: #178f5d;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 800;
+  box-shadow: 0 14rpx 32rpx rgba(23, 143, 93, 0.18);
+}

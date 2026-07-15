@@ -1,0 +1,59 @@
+.city-list {
+  padding-bottom: 40rpx;
+}
+
+.city-group {
+  margin-bottom: 22rpx;
+}
+
+.group-letter {
+  display: block;
+  margin: 0 0 10rpx 8rpx;
+  color: #81786d;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.group-card {
+  overflow: hidden;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 32rpx rgba(20, 20, 20, 0.055);
+}
+
+.city-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 92rpx;
+  padding: 0 26rpx;
+  border-bottom: 1rpx solid #f0ebe4;
+}
+
+.city-row:last-child {
+  border-bottom: 0;
+}
+
+.city-row.active {
+  background: #f2fbf6;
+}
+
+.city-name {
+  display: inline-block;
+  min-width: 132rpx;
+  color: #111111;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.city-tip {
+  color: #9a9186;
+  font-size: 24rpx;
+}
+
+.selected-mark {
+  display: block;
+  color: #178f5d;
+  font-size: 34rpx;
+  font-weight: 900;
+}

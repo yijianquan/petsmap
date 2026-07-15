@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>吾家有宠 - 地图</title>
+    <title>宠趣行 - 地图</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
 <header class="topbar">
-    <a class="brand" th:href="@{/}">吾家有宠</a>
+    <a class="brand" th:href="@{/}">宠趣行</a>
     <nav>
         <a class="active" th:href="@{/places}">地图</a>
         <a th:href="@{/qa}">问答</a>
@@ -600,7 +600,7 @@
 
     async function selectSuggestion(place) {
         nameInput.value = place.name || "";
-        typeInput.value = place.type || "PARK";
+        typeInput.value = place.type || "RESTAURANT";
         addressInput.value = place.address || "";
         latInput.value = formatCoordinate(place.latitude);
         lngInput.value = formatCoordinate(place.longitude);
@@ -631,7 +631,7 @@
         deletePlaceForm.action = `/places/${place.id}/delete`;
         deletePlaceForm.classList.remove("hidden");
         nameInput.value = place.name || "";
-        typeInput.value = place.type || "PARK";
+        typeInput.value = place.type || "RESTAURANT";
         addressInput.value = place.address || "";
         latInput.value = formatCoordinate(place.latitude);
         lngInput.value = formatCoordinate(place.longitude);
@@ -668,7 +668,7 @@
         placeForm.action = "/places";
         deletePlaceForm.classList.add("hidden");
         nameInput.value = "";
-        typeInput.value = "PARK";
+        typeInput.value = "RESTAURANT";
         addressInput.value = "";
         latInput.value = "";
         lngInput.value = "";
@@ -713,12 +713,14 @@
 
     function typeDisplayName(type) {
         const names = {
-            PARK: "大自然",
-            SCENIC: "景点",
-            MALL: "商场",
-            HOTEL: "酒店",
-            LAWN: "草坪",
-            RESTAURANT: "宠物友好餐厅"
+            RESTAURANT: "吃饭",
+            MALL: "逛街",
+            HOTEL: "住宿",
+            PARK: "散步",
+            PET_STORE: "宠物店",
+            HOSPITAL: "医院",
+            SCENIC: "散步",
+            LAWN: "散步"
         };
         return names[type] || type || "";
     }

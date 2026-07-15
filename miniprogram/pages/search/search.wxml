@@ -1,0 +1,30 @@
+<view class="search-page">
+  <view class="search-top">
+    <view class="search-input-wrap">
+      <text class="search-icon">⌕</text>
+      <input class="search-input" focus placeholder="搜索目的地或地点" value="{{keyword}}" bindinput="onKeyword" confirm-type="search" bindconfirm="runSearch" />
+    </view>
+    <text class="cancel" bindtap="goBack">取消</text>
+  </view>
+
+  <view class="mode-tabs">
+    <view class="mode-tab {{mode === 'destination' ? 'active' : ''}}" data-mode="destination" bindtap="switchMode">目的地</view>
+    <view class="mode-tab {{mode === 'place' ? 'active' : ''}}" data-mode="place" bindtap="switchMode">地点</view>
+  </view>
+
+  <view class="result-list">
+    <view wx:if="{{mode === 'destination'}}">
+      <view wx:for="{{destinationResults}}" wx:key="name" class="result-card" data-index="{{index}}" bindtap="chooseDestination">
+        <text class="result-title">{{item.name}}</text>
+        <text class="result-subtitle">{{item.address || city}}</text>
+      </view>
+    </view>
+    <view wx:if="{{mode === 'place'}}">
+      <view wx:for="{{placeResults}}" wx:key="id" class="result-card" data-id="{{item.id}}" bindtap="openPlace">
+        <text class="result-title">{{item.name}}</text>
+        <text class="result-subtitle">{{item.address || '暂无地址'}} · {{item.typeName}}</text>
+      </view>
+    </view>
+    <view wx:if="{{empty}}" class="empty">没有找到结果，换个关键词试试。</view>
+  </view>
+</view>

@@ -1,0 +1,113 @@
+<view class="map-page">
+  <map class="main-map"
+       latitude="{{latitude}}"
+       longitude="{{longitude}}"
+       scale="{{mapScale}}"
+       markers="{{markers}}"
+       show-location
+       bindmarkertap="onMarkerTap"
+       bindcallouttap="onMarkerTap"></map>
+
+  <view class="map-topbar">
+    <view class="city-pill" bindtap="openCity">
+      <text>{{city}}</text>
+    </view>
+    <view class="search-box" bindtap="openSearch">
+      <text class="search-icon">⌕</text>
+      <text class="search-placeholder">{{searchLabel}}</text>
+    </view>
+  </view>
+
+  <view class="map-locate" bindtap="locate">⌖</view>
+
+  <view class="bottom-drawer {{drawerExpanded ? 'expanded' : 'collapsed'}}"
+        bindtouchstart="onDrawerTouchStart"
+        bindtouchend="onDrawerTouchEnd">
+    <view class="drawer-handle" bindtap="toggleDrawer"></view>
+    <view class="drawer-head">
+      <view bindtap="toggleDrawer">
+        <text class="drawer-title">附近推荐</text>
+        <text class="drawer-subtitle">{{filteredPlaces.length}} 个地点 · {{drawerExpanded ? '点击收起' : '上滑展开'}}</text>
+      </view>
+      <view class="upload-btn soft-action primary" bindtap="openAdd">上传</view>
+    </view>
+
+    <view class="filter-wrap">
+      <scroll-view scroll-x class="filter-scroll">
+        <view wx:for="{{typeFilters}}" wx:key="value" class="filter-pill {{item.active ? 'active' : ''}}" data-type="{{item.value}}" bindtap="selectType">{{item.label}}</view>
+      </scroll-view>
+    </view>
+
+    <scroll-view scroll-y class="place-scroll">
+      <view wx:for="{{displayedPlaces}}" wx:key="id" class="place-card" data-id="{{item.id}}" bindtap="focusPlace">
+        <view class="place-top">
+          <view class="place-main">
+            <text class="place-name">{{item.name}}</text>
+            <text class="place-address">{{item.address || '暂无地址'}}</text>
+          </view>
+          <text class="place-distance">{{item.distanceText}}</text>
+        </view>
+        <view class="place-meta">
+          <view class="place-meta-text">
+            <text class="rating">★ {{item.ratingText}}</text>
+            <text>{{item.commentCount}}条评论</text>
+            <text>{{item.typeName}}</text>
+          </view>
+          <view class="detail-inline-btn" catchtap="openPlaceDetail" data-id="{{item.id}}">详情</view>
+        </view>
+        <view class="tag-line" wx:if="{{drawerExpanded}}">
+          <text wx:for="{{item.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>
+        </view>
+        <view class="place-actions" wx:if="{{drawerExpanded}}">
+          <view wx:if="{{item.editable}}" class="light-btn" catchtap="editPlace" data-id="{{item.id}}">编辑</view>
+        </view>
+      </view>
+      <view wx:if="{{displayedPlaces.length === 0}}" class="empty">附近还没有匹配地点。</view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{showForm}}" class="sheet-mask" bindtap="closeForm">
+    <view class="sheet" catchtap="noop">
+      <view class="row between">
+        <text class="sheet-title">{{editingId ? '编辑地点' : '上传地点'}}</text>
+        <text class="close" bindtap="closeForm">×</text>
+      </view>
+      <view class="field">
+        <text class="field-label">地点</text>
+        <view class="place-search-field">
+          <input class="place-search-input" value="{{placeSearchKeyword}}" placeholder="搜索地点或地址" bindinput="onPlaceSearchInput" />
+          <view class="place-locate-btn" bindtap="useCurrentPoint">⌖</view>
+        </view>
+        <view wx:if="{{placeSuggestions.length > 0}}" class="suggestion-list">
+          <view wx:for="{{placeSuggestions}}" wx:key="index" class="suggestion-item" data-index="{{index}}" bindtap="choosePlaceSuggestion">
+            <text class="suggestion-name">{{item.name}}</text>
+            <text class="suggestion-address">{{item.address}}</text>
+          </view>
+        </view>
+        <view class="selected-address">{{form.address || '选择联想地点后自动填入地址和坐标'}}</view>
+      </view>
+      <view class="field">
+        <text class="field-label">类型</text>
+        <picker range="{{placeTypes}}" range-key="label" bindchange="onTypeChange">
+          <view class="picker-shell">{{form.typeName || '选择类型'}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="field-label">说明</text>
+        <textarea class="textarea" value="{{form.description}}" placeholder="停车、牵引、营业时间等" data-field="description" bindinput="onFormInput" />
+      </view>
+      <view class="field">
+        <text class="field-label">标签</text>
+        <view class="tag-groups">
+          <view wx:for="{{formTagGroups}}" wx:key="name" class="tag-group">
+            <text class="tag-group-title">{{item.name}}</text>
+            <view class="tag-group-options">
+              <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="name" class="pill {{tag.active ? 'active' : ''}}" data-tag="{{tag.name}}" bindtap="toggleTag">{{tag.name}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="primary-btn save-btn" bindtap="savePlace">保存地点</view>
+    </view>
+  </view>
+</view>

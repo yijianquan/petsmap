@@ -8,6 +8,6 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "miniapp-guide";
+        return "redirect:/admin";
     }
 }

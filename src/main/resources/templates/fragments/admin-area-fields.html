@@ -1,0 +1,37 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="areaFormFields(area, parentAreas)">
+    <label>地区名称<input name="name" th:value="${area.name}" required placeholder="例如：上海市"></label>
+    <label>父级
+        <select name="pid">
+            <option value="0">无父级</option>
+            <option th:each="parent : ${parentAreas}"
+                    th:value="${parent.adcode}"
+                    th:selected="${area.pid == parent.adcode}"
+                    th:text="${parent.typeName + ' · ' + parent.name}">父级</option>
+        </select>
+    </label>
+    <label>地区字母<input name="letter" th:value="${area.letter}" placeholder="例如：S"></label>
+    <label>高德编号<input name="adcode" th:value="${area.adcode}" inputmode="numeric" required></label>
+    <label>经纬度<input name="location" th:value="${area.location}" placeholder="经度,纬度"></label>
+    <label>城市编号<input name="cityCode" th:value="${area.cityCode}" placeholder="城市必须填写且不能重复"></label>
+    <label>排序<input name="areaSort" th:value="${area.areaSort}" inputmode="numeric"></label>
+    <label>地区类型
+        <select name="areaType">
+            <option value="0" th:selected="${area.areaType == '0'}">国家</option>
+            <option value="1" th:selected="${area.areaType == '1'}">省</option>
+            <option value="2" th:selected="${area.areaType == '2'}">城市</option>
+            <option value="3" th:selected="${area.areaType == '3'}">区县</option>
+        </select>
+    </label>
+    <label>状态
+        <select name="areaStatus">
+            <option value="1" th:selected="${area.areaStatus == '1'}">生效</option>
+            <option value="0" th:selected="${area.areaStatus == '0'}">未生效</option>
+        </select>
+    </label>
+    <label>热门
+        <select name="hot">
+            <option value="0" th:selected="${area.hot == '0'}">非热门</option>
+            <option value="1" th:selected="${area.hot == '1'}">热门</option>
+        </select>
+    </label>
+</th:block>

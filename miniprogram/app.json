@@ -1,0 +1,45 @@
+{
+  "entryPagePath": "pages/map/map",
+  "pages": [
+    "pages/map/map",
+    "pages/search/search",
+    "pages/city/city",
+    "pages/place-detail/place-detail",
+    "pages/login/login",
+    "pages/mine/mine"
+  ],
+  "window": {
+    "navigationBarTitleText": "宠趣行",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f1ea"
+  },
+  "tabBar": {
+    "color": "#8a8177",
+    "selectedColor": "#111111",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/map/map",
+        "text": "地图",
+        "iconPath": "images/tab-map.png",
+        "selectedIconPath": "images/tab-map-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tab-mine.png",
+        "selectedIconPath": "images/tab-mine-active.png"
+      }
+    ]
+  },
+  "subPackages": [],
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于展示附近宠物友好地点和计算距离"
+    }
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

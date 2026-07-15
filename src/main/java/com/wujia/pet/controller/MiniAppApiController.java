@@ -172,7 +172,7 @@ public class MiniAppApiController {
     @GetMapping("/options")
     public Map<String, Object> options() {
         return Map.of(
-                "placeTypes", enumOptions(PlaceType.values()),
+                "placeTypes", enumOptions(PlaceType.visibleValues()),
                 "placeTags", List.of("大狗友好", "猫咪友好", "无小孩", "环境安静", "停车", "饮水", "室内可进", "可进店", "草坪大", "阴凉多", "夜间照明", "免费", "收费透明", "需牵引", "可预约"));
     }
 
@@ -322,7 +322,7 @@ public class MiniAppApiController {
 
     private void applyPlace(PetFriendlyPlace place, PlaceRequest request) {
         place.setName(required(request.name(), "请填写地点名称。"));
-        place.setType(parseEnum(PlaceType.class, request.type(), PlaceType.PARK));
+        place.setType(parseEnum(PlaceType.class, request.type(), PlaceType.PARK).categoryType());
         place.setAddress(text(request.address()));
         place.setLatitude(request.latitude());
         place.setLongitude(request.longitude());
@@ -380,8 +380,9 @@ public class MiniAppApiController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", place.getId());
         dto.put("name", place.getName());
-        dto.put("type", place.getType());
-        dto.put("typeName", place.getType().getDisplayName());
+        PlaceType categoryType = place.getType().categoryType();
+        dto.put("type", categoryType);
+        dto.put("typeName", categoryType.getDisplayName());
         dto.put("address", place.getAddress());
         dto.put("latitude", place.getLatitude());
         dto.put("longitude", place.getLongitude());
@@ -427,7 +428,6 @@ public class MiniAppApiController {
                         return Map.of("value", value.toString(), "label", value.toString());
                     }
                 })
-                .sorted(Comparator.comparing(option -> option.get("label")))
                 .toList();
     }
 

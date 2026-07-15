@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>宠趣行 - 后台管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-body">
+<header class="admin-topbar">
+    <a class="admin-brand" th:href="@{/admin}">宠趣行后台</a>
+    <nav class="admin-nav">
+        <a class="active" th:href="@{/admin}">总览</a>
+        <a th:href="@{/admin/places}">地点管理</a>
+        <a th:href="@{/admin/areas}">城市管理</a>
+        <a th:href="@{/admin/users}">微信用户</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="admin-logout" type="submit">退出</button>
+    </form>
+</header>
+
+<main class="admin-page">
+    <section class="admin-stats">
+        <article class="admin-stat-card">
+            <span>地点</span>
+            <strong th:text="${placeCount}">0</strong>
+        </article>
+        <article class="admin-stat-card">
+            <span>微信用户</span>
+            <strong th:text="${miniUserCount}">0</strong>
+        </article>
+        <article class="admin-stat-card">
+            <span>评论</span>
+            <strong th:text="${commentCount}">0</strong>
+        </article>
+    </section>
+
+    <section class="admin-card crawl-card">
+        <div class="admin-section-head">
+            <div>
+                <h2>采集宠物出行地点</h2>
+            </div>
+        </div>
+        <div class="crawl-toolbar">
+            <label class="crawl-city-field">
+                采集城市
+                <span class="area-combo js-area-combo" data-placeholder="选择城市">
+                    <button class="area-combo-trigger" type="button">选择城市</button>
+                    <input id="crawlCityCodeInput" type="hidden" value="">
+                    <span class="area-combo-menu hidden">
+                        <span class="area-combo-provinces">
+                            <button class="area-combo-province"
+                                    type="button"
+                                    th:each="province : ${provinceAreas}"
+                                    th:attr="data-province-id=${province.adcode},data-province-name=${province.name}"
+                                    th:text="${province.name}">省份</button>
+                        </span>
+                        <span class="area-combo-cities">
+                            <button class="area-combo-city"
+                                    type="button"
+                                    th:each="city : ${cityAreas}"
+                                    th:attr="data-city-code=${city.cityCode},data-city-name=${city.name},data-province-id=${city.pid}"
+                                    th:text="${city.name}">城市</button>
+                        </span>
+                    </span>
+                </span>
+            </label>
+            <button id="crawlStartButton" class="admin-primary" type="button" th:disabled="${crawlStatus.running}">开始采集</button>
+        </div>
+        <div class="crawl-status" th:classappend="${crawlStatus.running} ? ' running'">
+            <span>
+                状态
+                <strong id="crawlMessage" th:text="${crawlStatus.message}">尚未开始采集。</strong>
+            </span>
+            <span>已抓取 <strong id="crawlFetched" th:text="${crawlStatus.fetched}">0</strong></span>
+            <span>已新增 <strong id="crawlInserted" th:text="${crawlStatus.inserted}">0</strong></span>
+            <span>已跳过 <strong id="crawlSkipped" th:text="${crawlStatus.skipped}">0</strong></span>
+        </div>
+    </section>
+</main>
+
+<script>
+    const crawlStartButton = document.getElementById("crawlStartButton");
+    const crawlCityCodeInput = document.getElementById("crawlCityCodeInput");
+    const crawlMessage = document.getElementById("crawlMessage");
+    const crawlFetched = document.getElementById("crawlFetched");
+    const crawlInserted = document.getElementById("crawlInserted");
+    const crawlSkipped = document.getElementById("crawlSkipped");
+    const csrfToken = document.querySelector("meta[name='_csrf']")?.content;
+    const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.content;
+    let crawlTimer = null;
+
+    function renderCrawlStatus(status) {
+        crawlMessage.textContent = status.message || "尚未开始采集。";
+        crawlFetched.textContent = status.fetched || 0;
+        crawlInserted.textContent = status.inserted || 0;
+        crawlSkipped.textContent = status.skipped || 0;
+        crawlStartButton.disabled = !!status.running;
+        crawlStartButton.textContent = status.running ? "采集中..." : "开始采集";
+        if (status.running && !crawlTimer) {
+            crawlTimer = setInterval(loadCrawlStatus, 1800);
+        }
+        if (!status.running && crawlTimer) {
+            clearInterval(crawlTimer);
+            crawlTimer = null;
+        }
+    }
+
+    async function loadCrawlStatus() {
+        const response = await fetch("/admin/crawl/places/status", {headers: {"Accept": "application/json"}});
+        if (response.ok) {
+            renderCrawlStatus(await response.json());
+        }
+    }
+
+    crawlStartButton.addEventListener("click", async () => {
+        crawlStartButton.disabled = true;
+        crawlStartButton.textContent = "采集中...";
+        const body = new URLSearchParams({cityCode: crawlCityCodeInput.value});
+        const headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"};
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        const response = await fetch("/admin/crawl/places", {method: "POST", headers, body});
+        if (response.ok) {
+            renderCrawlStatus(await response.json());
+        } else {
+            crawlStartButton.disabled = false;
+            crawlStartButton.textContent = "开始采集";
+            crawlMessage.textContent = "采集任务启动失败，请稍后重试。";
+        }
+    });
+
+    if (crawlStartButton.disabled) {
+        loadCrawlStatus();
+    }
+
+    setupAreaCombos();
+
+    function setupAreaCombos() {
+        const closeAll = (except) => {
+            document.querySelectorAll(".area-combo-menu").forEach((menu) => {
+                if (menu !== except) menu.classList.add("hidden");
+            });
+        };
+        document.querySelectorAll(".js-area-combo").forEach((combo) => {
+            const trigger = combo.querySelector(".area-combo-trigger");
+            const input = combo.querySelector("input[type='hidden']");
+            const menu = combo.querySelector(".area-combo-menu");
+            const provinces = Array.from(combo.querySelectorAll(".area-combo-province"));
+            const cities = Array.from(combo.querySelectorAll(".area-combo-city"));
+            const placeholder = combo.dataset.placeholder || "选择城市";
+
+            const setProvince = (provinceId) => {
+                provinces.forEach((province) => {
+                    province.classList.toggle("active", province.dataset.provinceId === provinceId);
+                });
+                cities.forEach((city) => {
+                    city.hidden = city.dataset.provinceId !== provinceId;
+                });
+                const selected = cities.find((city) => city.classList.contains("selected"));
+                if (selected && selected.hidden) {
+                    selected.classList.remove("selected");
+                    input.value = "";
+                    trigger.textContent = placeholder;
+                }
+            };
+
+            const selectCity = (city) => {
+                cities.forEach((item) => item.classList.toggle("selected", item === city));
+                input.value = city?.dataset.cityCode || "";
+                trigger.textContent = city ? cityLabel(city) : placeholder;
+                menu.classList.add("hidden");
+            };
+
+            const cityLabel = (city) => {
+                const province = provinces.find((item) => item.dataset.provinceId === city.dataset.provinceId);
+                const provinceName = province?.dataset.provinceName || "";
+                return provinceName ? `${provinceName} - ${city.dataset.cityName}` : city.dataset.cityName;
+            };
+
+            const selected = cities.find((city) => input.value && city.dataset.cityCode === input.value);
+            const firstProvinceId = selected?.dataset.provinceId || provinces[0]?.dataset.provinceId || "";
+            setProvince(firstProvinceId);
+            if (selected) {
+                selected.classList.add("selected");
+                trigger.textContent = cityLabel(selected) || placeholder;
+            }
+
+            trigger.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const willOpen = menu.classList.contains("hidden");
+                closeAll(menu);
+                menu.classList.toggle("hidden", !willOpen);
+            });
+            menu.addEventListener("click", (event) => event.stopPropagation());
+            provinces.forEach((province) => {
+                province.addEventListener("click", () => setProvince(province.dataset.provinceId || ""));
+            });
+            cities.forEach((city) => {
+                city.addEventListener("click", () => selectCity(city));
+            });
+        });
+        document.addEventListener("click", () => closeAll());
+    }
+</script>
+</body>
+</html>

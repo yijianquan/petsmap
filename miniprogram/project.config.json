@@ -1,0 +1,14 @@
+{
+  "description": "宠趣行微信小程序",
+  "appid": "touristappid",
+  "projectname": "wu-jia-you-chong-miniapp",
+  "miniprogramRoot": "./",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  }
+}

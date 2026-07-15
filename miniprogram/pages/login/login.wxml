@@ -1,0 +1,8 @@
+<view class="login-page">
+  <view class="login-card">
+    <view class="wechat-icon">宠</view>
+    <text class="login-card-title">使用微信用户登录</text>
+    <text class="hint">登录后可以上传地点、写评论和管理自己的出行内容。</text>
+    <button class="wechat-login-btn" loading="{{loading}}" bindtap="wechatLogin">微信登录</button>
+  </view>
+</view>

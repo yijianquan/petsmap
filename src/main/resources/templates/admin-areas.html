@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣行 - 城市管理</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-body">
+<header class="admin-topbar">
+    <a class="admin-brand" th:href="@{/admin}">宠趣行后台</a>
+    <nav class="admin-nav">
+        <a th:href="@{/admin}">总览</a>
+        <a th:href="@{/admin/places}">地点管理</a>
+        <a class="active" th:href="@{/admin/areas}">城市管理</a>
+        <a th:href="@{/admin/users}">微信用户</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="admin-logout" type="submit">退出</button>
+    </form>
+</header>
+
+<main class="admin-page">
+    <section class="admin-card">
+        <form class="admin-toolbar" th:action="@{/admin/areas}" method="get">
+            <div class="admin-toolbar-left">
+                <label class="compact-filter">
+                    地区名称
+                    <input name="name" th:value="${name}" placeholder="输入地区名筛选">
+                </label>
+                <label class="compact-filter">
+                    地区类型
+                    <select name="areaType">
+                        <option value="">全部类型</option>
+                        <option value="0" th:selected="${areaType == '0'}">国家</option>
+                        <option value="1" th:selected="${areaType == '1'}">省</option>
+                        <option value="2" th:selected="${areaType == '2'}">城市</option>
+                        <option value="3" th:selected="${areaType == '3'}">区县</option>
+                    </select>
+                </label>
+                <button class="admin-primary" type="submit">查询</button>
+                <a class="admin-secondary-link" th:href="@{/admin/areas}">重置</a>
+                <span th:text="${areas.totalElements + ' 条结果'}">0 条结果</span>
+            </div>
+            <button class="admin-primary" type="button" data-open-modal="areaCreateModal">新增地区</button>
+        </form>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-empty" th:if="${#lists.isEmpty(areas.content)}">暂无地区数据。</div>
+        <div class="admin-table-wrap area-table-wrap" th:if="${!#lists.isEmpty(areas.content)}">
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th class="col-area-name">名称</th>
+                    <th>类型</th>
+                    <th>父级</th>
+                    <th>高德编号</th>
+                    <th>城市编号</th>
+                    <th>经纬度</th>
+                    <th>字母</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>热门</th>
+                    <th class="col-actions">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${areas.content}">
+                    <td class="ellipsis-cell"><strong th:text="${item.name}">地区</strong></td>
+                    <td th:text="${item.typeName}">城市</td>
+                    <td class="ellipsis-cell" th:text="${item.pid == 0 ? '-' : (areaNames[item.pid] == null ? item.pid : areaNames[item.pid])}">父级</td>
+                    <td th:text="${item.adcode}">0</td>
+                    <td class="ellipsis-cell" th:text="${item.cityCode}">021</td>
+                    <td class="ellipsis-cell" th:text="${item.location}">121,31</td>
+                    <td th:text="${item.letter}">S</td>
+                    <td th:text="${item.areaSort}">0</td>
+                    <td th:text="${item.statusName}">生效</td>
+                    <td th:text="${item.hotName}">热门</td>
+                    <td class="action-cell">
+                        <div class="admin-row-actions">
+                            <button class="admin-secondary" type="button" th:attr="data-open-modal='areaEditModal-' + ${item.id}">编辑</button>
+                            <form th:action="@{/admin/areas/{id}/delete(id=${item.id})}" method="post" onsubmit="return confirm('未关联子级和地点时才会删除，确定继续吗？')">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="admin-danger" type="submit">删除</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" th:if="${totalPages > 1}">
+            <a class="admin-secondary-link"
+               th:classappend="${currentPage == 0} ? ' disabled'"
+               th:href="@{/admin/areas(name=${name},areaType=${areaType},page=${currentPage - 1})}">上一页</a>
+            <span th:text="${currentPage + 1 + ' / ' + totalPages}">1 / 1</span>
+            <a class="admin-secondary-link"
+               th:classappend="${currentPage + 1 >= totalPages} ? ' disabled'"
+               th:href="@{/admin/areas(name=${name},areaType=${areaType},page=${currentPage + 1})}">下一页</a>
+        </div>
+    </section>
+</main>
+
+<div class="admin-modal-backdrop hidden" id="areaCreateModal">
+    <section class="admin-modal">
+        <div class="admin-modal-head">
+            <h2>新增地区</h2>
+            <button type="button" data-close-modal="areaCreateModal">×</button>
+        </div>
+        <form class="admin-form-grid" th:action="@{/admin/areas}" th:object="${area}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div th:replace="~{fragments/admin-area-fields :: areaFormFields(${area}, ${parentAreas})}"></div>
+            <button class="admin-primary wide" type="submit">保存</button>
+        </form>
+    </section>
+</div>
+
+<th:block th:each="item : ${areas.content}">
+    <div class="admin-modal-backdrop hidden" th:id="${'areaEditModal-' + item.id}">
+        <section class="admin-modal">
+            <div class="admin-modal-head">
+                <h2 th:text="${'编辑：' + item.name}">编辑地区</h2>
+                <button type="button" th:attr="data-close-modal='areaEditModal-' + ${item.id}">×</button>
+            </div>
+            <form class="admin-form-grid" th:action="@{/admin/areas/{id}/edit(id=${item.id})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div th:replace="~{fragments/admin-area-fields :: areaFormFields(${item}, ${parentAreas})}"></div>
+                <button class="admin-primary wide" type="submit">保存修改</button>
+            </form>
+        </section>
+    </div>
+</th:block>
+
+<script>
+    document.querySelectorAll("[data-open-modal]").forEach((button) => {
+        button.addEventListener("click", () => {
+            document.getElementById(button.dataset.openModal)?.classList.remove("hidden");
+        });
+    });
+    document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => {
+            document.getElementById(button.dataset.closeModal)?.classList.add("hidden");
+        });
+    });
+    document.querySelectorAll(".admin-modal-backdrop").forEach((backdrop) => {
+        backdrop.addEventListener("click", (event) => {
+            if (event.target === backdrop) backdrop.classList.add("hidden");
+        });
+    });
+</script>
+</body>
+</html>

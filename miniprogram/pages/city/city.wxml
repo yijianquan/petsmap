@@ -1,0 +1,21 @@
+<view class="page city-page">
+  <view class="hero">
+    <text class="eyebrow">CITY</text>
+    <text class="title">选择城市</text>
+    <text class="subtitle">切换后，目的地搜索会优先在该城市附近查找。</text>
+  </view>
+  <view class="city-list">
+    <view wx:for="{{cityGroups}}" wx:key="letter" class="city-group">
+      <text class="group-letter">{{item.letter}}</text>
+      <view class="group-card">
+        <view wx:for="{{item.cities}}" wx:for-item="city" wx:key="name" class="city-row {{currentCity === city.name ? 'active' : ''}}" data-city="{{city.name}}" bindtap="selectCity">
+          <view>
+            <text class="city-name">{{city.name}}</text>
+            <text class="city-tip">{{city.tip}}</text>
+          </view>
+          <text wx:if="{{currentCity === city.name}}" class="selected-mark">✓</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

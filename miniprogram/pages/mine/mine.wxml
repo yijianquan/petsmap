@@ -1,0 +1,54 @@
+<view class="page">
+  <view class="profile-panel clickable" bindtap="handleProfileTap">
+    <image wx:if="{{userAvatarSrc}}" class="avatar" src="{{userAvatarSrc}}" mode="aspectFill" />
+    <view wx:else class="avatar default-avatar">宠</view>
+    <view class="profile-info">
+      <text class="username">{{loggedIn ? (user.nickname || user.username) : '登录/注册'}}</text>
+      <text class="muted">{{loggedIn ? '管理你的地点和账号' : '登录后可上传地点、写评论'}}</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view wx:if="{{loggedIn}}" class="account-section">
+    <view class="section-head">
+      <text class="section-title">我上传的地点</text>
+      <text class="section-count">{{uploadedPlaces.length}} 个</text>
+    </view>
+
+    <view class="uploaded-list">
+      <view wx:for="{{uploadedPlaces}}" wx:key="id" class="place-card" data-id="{{item.id}}" bindtap="openPlace">
+        <view class="place-main">
+          <text class="place-name">{{item.name}}</text>
+          <text class="place-address">{{item.address || '暂无地址'}}</text>
+          <view class="place-meta">
+            <text>★ {{item.ratingText}}</text>
+            <text>{{item.commentCount}} 条评论</text>
+            <text>{{item.typeName}}</text>
+          </view>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+      <view wx:if="{{uploadedPlaces.length === 0}}" class="empty">你还没有上传地点。</view>
+    </view>
+
+    <view class="logout-btn" bindtap="logout">退出登录</view>
+  </view>
+
+  <view wx:if="{{showProfileEditor}}" class="sheet-mask" bindtap="closeProfileEditor">
+    <view class="sheet" catchtap="noop">
+      <view class="row between">
+        <text class="sheet-title">编辑资料</text>
+        <text class="close" bindtap="closeProfileEditor">×</text>
+      </view>
+      <button class="editor-avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{profileAvatarSrc}}" class="editor-avatar" src="{{profileAvatarSrc}}" mode="aspectFill" />
+        <view wx:else class="editor-avatar default-avatar">宠</view>
+      </button>
+      <view class="field">
+        <text class="field-label">昵称</text>
+        <input class="input profile-input" type="nickname" value="{{profileForm.nickname}}" placeholder="填写微信昵称" bindinput="onNicknameInput" />
+      </view>
+      <view class="primary-save" bindtap="saveProfile">保存资料</view>
+    </view>
+  </view>
+</view>

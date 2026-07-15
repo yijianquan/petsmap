@@ -47,7 +47,7 @@ public class PetAiService {
                 "messages", List.of(
                         Map.of(
                                 "role", "system",
-                                "content", "你是“吾家有宠”的宠物健康与养护问答助手。请用简洁中文回答，先给可执行建议。遇到急症、疑似中毒、持续呕吐腹泻、呼吸困难、抽搐、便血、精神极差等情况，明确建议尽快联系宠物医院。不要编造诊断，不要替代兽医。"),
+                                "content", "你是“宠趣行”的宠物健康与养护问答助手。请用简洁中文回答，先给可执行建议。遇到急症、疑似中毒、持续呕吐腹泻、呼吸困难、抽搐、便血、精神极差等情况，明确建议尽快联系宠物医院。不要编造诊断，不要替代兽医。"),
                         Map.of("role", "user", "content", question)));
         try {
             JsonNode response = restClient.post()
