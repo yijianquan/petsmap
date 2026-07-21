@@ -1,14 +1,15 @@
 <view class="map-page">
   <map id="mainMap"
-       class="main-map"
+       class="main-map {{drawerExpanded ? 'drawer-expanded' : 'drawer-collapsed'}}"
        latitude="{{latitude}}"
        longitude="{{longitude}}"
        scale="{{mapScale}}"
        markers="{{markers}}"
+       enable-scroll="{{!drawerTouching}}"
        show-location
        bindregionchange="onRegionChange"
        bindmarkertap="onMarkerTap"
-       bindcallouttap="onMarkerTap"></map>
+       bindcallouttap="onCalloutTap"></map>
 
   <view class="map-topbar">
     <view class="city-pill" bindtap="openCity">
@@ -20,18 +21,23 @@
     </view>
   </view>
 
-  <view class="map-locate" bindtap="locate">⌖</view>
+  <view class="map-locate {{drawerExpanded ? 'drawer-expanded' : 'drawer-collapsed'}}" bindtap="locate">⌖</view>
 
   <view class="bottom-drawer {{drawerExpanded ? 'expanded' : 'collapsed'}}"
-        bindtouchstart="onDrawerTouchStart"
-        bindtouchend="onDrawerTouchEnd">
-    <view class="drawer-handle" bindtap="toggleDrawer"></view>
-    <view class="drawer-head">
-      <view bindtap="toggleDrawer">
-        <text class="drawer-title">附近推荐</text>
-        <text class="drawer-subtitle">{{filteredPlaces.length}} 个地点 · {{drawerExpanded ? '点击收起' : '上滑展开'}}</text>
+        catchtap="noop">
+    <view class="drawer-gesture-zone"
+          bindtouchstart="onDrawerTouchStart"
+          catchtouchmove="onDrawerTouchMove"
+          bindtouchend="onDrawerTouchEnd"
+          bindtouchcancel="onDrawerTouchCancel">
+      <view class="drawer-handle" bindtap="toggleDrawer"></view>
+      <view class="drawer-head">
+        <view bindtap="toggleDrawer">
+          <text class="drawer-title">附近的地点</text>
+          <text class="drawer-subtitle">{{filteredPlaces.length}} 个地点 · {{drawerExpanded ? '点击收起' : '上滑展开'}}</text>
+        </view>
+        <view class="upload-btn soft-action primary" bindtap="openAdd">上传</view>
       </view>
-      <view class="upload-btn soft-action primary" bindtap="openAdd">上传</view>
     </view>
 
     <view class="filter-wrap">
@@ -73,9 +79,6 @@
         <view class="tag-line" wx:if="{{drawerExpanded}}">
           <text wx:for="{{item.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>
         </view>
-        <view class="place-actions" wx:if="{{drawerExpanded}}">
-          <view wx:if="{{item.editable}}" class="light-btn" catchtap="editPlace" data-id="{{item.id}}">编辑</view>
-        </view>
       </view>
       <view wx:if="{{displayedPlaces.length === 0}}" class="empty">附近还没有匹配地点。</view>
     </scroll-view>
@@ -106,6 +109,10 @@
         <picker range="{{placeTypes}}" range-key="label" bindchange="onTypeChange">
           <view class="picker-shell">{{form.typeName || '选择类型'}}</view>
         </picker>
+      </view>
+      <view class="field">
+        <text class="field-label">联系电话</text>
+        <input class="picker-shell" type="text" value="{{form.phone}}" placeholder="请输入联系电话" data-field="phone" bindinput="onFormInput" />
       </view>
       <view class="field">
         <text class="field-label">说明</text>

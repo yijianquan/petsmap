@@ -13,6 +13,8 @@ public interface PetFriendlyPlaceRepository extends JpaRepository<PetFriendlyPla
 
     List<PetFriendlyPlace> findAllByOrderByIdDesc();
 
+    List<PetFriendlyPlace> findByUploadedByUsernameOrderByIdDesc(String username);
+
     Page<PetFriendlyPlace> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @Query("""
@@ -49,4 +51,8 @@ public interface PetFriendlyPlaceRepository extends JpaRepository<PetFriendlyPla
     boolean existsByName(String name);
 
     Optional<PetFriendlyPlace> findByName(String name);
+
+    Optional<PetFriendlyPlace> findBySourceProviderAndSourcePoiId(String sourceProvider, String sourcePoiId);
+
+    Optional<PetFriendlyPlace> findFirstByNameAndAddress(String name, String address);
 }

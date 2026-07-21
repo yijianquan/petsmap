@@ -3,7 +3,9 @@ const { request, asList } = require("../../utils/request");
 Page({
   data: {
     currentCity: "上海市",
-    cityGroups: []
+    cityGroups: [],
+    allCities: [],
+    cityKeyword: ""
   },
 
   onLoad(options) {
@@ -14,10 +16,18 @@ Page({
   async loadCities() {
     try {
       const cities = asList(await request({ url: "/miniapp/api/cities" }));
-      this.setData({ cityGroups: groupCities(cities) });
+      this.setData({ allCities: cities, cityGroups: groupCities(cities) });
     } catch (error) {
       this.setData({ cityGroups: [] });
     }
+  },
+
+  onCitySearch(event) {
+    const cityKeyword = (event.detail.value || "").trim();
+    const cities = cityKeyword
+      ? this.data.allCities.filter((city) => (city.name || "").includes(cityKeyword))
+      : this.data.allCities;
+    this.setData({ cityKeyword, cityGroups: groupCities(cities) });
   },
 
   selectCity(event) {
@@ -35,6 +45,7 @@ Page({
       });
     }
     wx.removeStorageSync("selectedDestination");
+    wx.removeStorageSync("selectedPlaceKeyword");
     wx.navigateBack();
   }
 });
@@ -52,10 +63,14 @@ function groupCities(cities) {
     });
   });
   return Object.keys(buckets)
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => {
+      if (left === "#") return 1;
+      if (right === "#") return -1;
+      return left.localeCompare(right, "en");
+    })
     .map((letter) => ({
       letter,
-      cities: buckets[letter].sort((left, right) => (left.name || "").localeCompare(right.name || ""))
+      cities: buckets[letter].sort((left, right) => (left.name || "").localeCompare(right.name || "", "zh-CN"))
     }));
 }
 

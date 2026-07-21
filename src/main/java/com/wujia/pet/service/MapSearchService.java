@@ -73,15 +73,22 @@ public class MapSearchService {
                 return Map.of("name", "当前位置", "address", "", "latitude", latitude, "longitude", longitude);
             }
             String address = regeocode.path("formatted_address").asText("");
+            JsonNode addressComponent = regeocode.path("addressComponent");
+            String cityName = nodeText(addressComponent.path("city"));
+            if (cityName.isBlank()) {
+                cityName = nodeText(addressComponent.path("province"));
+            }
             String name = firstPoiName(regeocode);
             if (name.isBlank()) {
                 name = address.isBlank() ? "当前位置" : address;
             }
-            return Map.of(
-                    "name", name,
-                    "address", address,
-                    "latitude", latitude,
-                    "longitude", longitude);
+            Map<String, Object> result = new java.util.LinkedHashMap<>();
+            result.put("name", name);
+            result.put("address", address);
+            result.put("latitude", latitude);
+            result.put("longitude", longitude);
+            result.put("cityName", cityName);
+            return result;
         } catch (RuntimeException exception) {
             return Map.of("name", "当前位置", "address", "", "latitude", latitude, "longitude", longitude);
         }
@@ -118,8 +125,9 @@ public class MapSearchService {
                         poi.path("cityname").asText(""),
                         poi.path("adname").asText(""),
                         poi.path("address").asText(""));
+                String cityName = poi.path("cityname").asText("");
                 PlaceType type = inferType(name + " " + poi.path("type").asText(""));
-                results.add(result(name, address, latitude, longitude, type, "amap"));
+                results.add(result(name, address, latitude, longitude, cityName, type, "amap"));
             }
             return results;
         } catch (RuntimeException ex) {
@@ -148,8 +156,10 @@ public class MapSearchService {
                     name = item.path("display_name").asText(keyword).split(",")[0];
                 }
                 String address = item.path("display_name").asText("");
+                JsonNode addressNode = item.path("address");
+                String cityName = firstText(addressNode, "city", "town", "municipality", "county", "state");
                 PlaceType type = inferType(name + " " + item.path("type").asText("") + " " + item.path("class").asText(""));
-                results.add(result(name, address, latitude, longitude, type, "nominatim"));
+                results.add(result(name, address, latitude, longitude, cityName, type, "nominatim"));
             }
             return results;
         } catch (RuntimeException ex) {
@@ -165,6 +175,7 @@ public class MapSearchService {
                         place.getAddress(),
                         place.getLatitude(),
                         place.getLongitude(),
+                        "",
                 place.getType().categoryType(),
                         "local"))
                 .toList();
@@ -175,6 +186,7 @@ public class MapSearchService {
             String address,
             Double latitude,
             Double longitude,
+            String cityName,
             PlaceType type,
             String provider) {
         return new MapSearchResult(
@@ -182,9 +194,30 @@ public class MapSearchService {
                 address,
                 latitude,
                 longitude,
+                cityName,
                 type.categoryType(),
                 type.categoryType().getDisplayName(),
                 provider);
+    }
+
+    private String firstText(JsonNode node, String... fields) {
+        for (String field : fields) {
+            String value = node.path(field).asText("");
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private String nodeText(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return "";
+        }
+        if (node.isArray()) {
+            return node.isEmpty() ? "" : node.get(0).asText("");
+        }
+        return node.asText("");
     }
 
     private PlaceType inferType(String text) {

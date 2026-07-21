@@ -35,13 +35,23 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        userAccountRepository.findByUsername(adminUsername)
+        UserAccount account = userAccountRepository.findByUsername(adminUsername)
                 .orElseGet(() -> {
-                    UserAccount account = new UserAccount();
-                    account.setUsername(adminUsername);
-                    account.setPassword(passwordEncoder.encode(adminPassword));
-                    account.setRole("ROLE_ADMIN");
-                    return userAccountRepository.save(account);
+                    UserAccount created = new UserAccount();
+                    created.setUsername(adminUsername);
+                    return created;
                 });
+        boolean changed = account.getId() == null;
+        if (!"ROLE_ADMIN".equals(account.getRole())) {
+            account.setRole("ROLE_ADMIN");
+            changed = true;
+        }
+        if (account.getPassword() == null || !passwordEncoder.matches(adminPassword, account.getPassword())) {
+            account.setPassword(passwordEncoder.encode(adminPassword));
+            changed = true;
+        }
+        if (changed) {
+            userAccountRepository.save(account);
+        }
     }
 }

@@ -62,9 +62,16 @@ Page({
       name: destination.name,
       address: destination.address,
       latitude: destination.latitude,
+      longitude: destination.longitude,
+      cityName: destination.cityName || this.data.city
+    });
+    const destinationCity = destination.cityName || this.data.city;
+    wx.setStorageSync("selectedCity", destinationCity);
+    wx.setStorageSync("selectedCityLocation", {
+      name: destinationCity,
+      latitude: destination.latitude,
       longitude: destination.longitude
     });
-    wx.setStorageSync("selectedCity", this.data.city);
     wx.switchTab({ url: "/pages/map/map" });
   },
 

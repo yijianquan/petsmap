@@ -1,0 +1,37 @@
+<view class="chat-page">
+  <view class="chat-head">
+    <view bindtap="openMembers">
+      <text class="chat-name">{{name}}<text wx:if="{{distanceText}}" style="color:#178f5d;font-size:24rpx;"> · {{distanceText}}</text></text>
+      <text class="chat-meta">{{group.memberCount || 0}} 人 · {{group.placeName}}</text>
+    </view>
+    <view class="head-actions">
+      <view class="members-btn" bindtap="openMembers">成员</view>
+      <view wx:if="{{group.owner}}" class="manage-btn" bindtap="openManage">管理</view>
+      <view wx:else class="manage-btn" bindtap="leave">退出</view>
+    </view>
+  </view>
+  <scroll-view scroll-y class="message-list" scroll-into-view="{{scrollIntoView}}">
+    <view wx:for="{{messages}}" wx:key="id" id="message-{{item.id}}" class="message-row {{item.mine ? 'mine' : ''}}">
+      <image class="avatar" src="{{item.avatarSrc}}" mode="aspectFill" data-index="{{index}}" bindtap="showSender" />
+      <view class="message-body"><text class="sender">{{item.senderName}}</text><view class="bubble">{{item.content}}</view><text class="time">{{item.createdAt}}</text></view>
+    </view>
+    <view class="message-bottom"></view>
+  </scroll-view>
+  <view class="composer"><input value="{{content}}" maxlength="500" placeholder="说点什么..." bindinput="onContent" confirm-type="send" bindconfirm="send" /><view class="send-btn" bindtap="send">发送</view></view>
+  <view wx:if="{{showManage}}" class="sheet-mask" bindtap="closeManage">
+    <view class="sheet" catchtap="noop">
+      <text class="sheet-title">群聊管理</text>
+      <input class="name-input" value="{{renameValue}}" maxlength="40" bindinput="onRename"/>
+      <view class="save-btn" bindtap="rename">保存群名</view>
+      <view class="danger-btn" style="padding:14rpx 20rpx;border-radius:18rpx;font-size:24rpx;" bindtap="dissolve">解散群聊</view>
+    </view>
+  </view>
+  <view wx:if="{{selectedMember}}" class="member-mask" bindtap="closeMember">
+    <view class="member-card" catchtap="noop">
+      <image class="profile-avatar" src="{{selectedMember.avatarSrc}}" mode="aspectFill"/>
+      <text class="profile-name">{{selectedMember.nickname}}</text>
+      <text wx:if="{{selectedMember.owner}}" class="owner-tag">群主</text>
+      <text class="profile-tip">更多宠物资料将在后续版本开放</text>
+    </view>
+  </view>
+</view>

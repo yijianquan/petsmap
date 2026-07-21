@@ -7,6 +7,7 @@ public record MapSearchResult(
         String address,
         Double latitude,
         Double longitude,
+        String cityName,
         PlaceType type,
         String typeDisplayName,
         String provider) {

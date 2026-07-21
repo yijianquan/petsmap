@@ -2,12 +2,14 @@ package com.wujia.pet.controller;
 
 import com.wujia.pet.entity.PetFriendlyPlace;
 import com.wujia.pet.entity.PlaceComment;
+import com.wujia.pet.entity.PlaceFavorite;
 import com.wujia.pet.entity.PlaceSourceType;
 import com.wujia.pet.entity.PlaceType;
 import com.wujia.pet.entity.SysArea;
 import com.wujia.pet.entity.UserAccount;
 import com.wujia.pet.repository.PetFriendlyPlaceRepository;
 import com.wujia.pet.repository.PlaceCommentRepository;
+import com.wujia.pet.repository.PlaceFavoriteRepository;
 import com.wujia.pet.repository.SysAreaRepository;
 import com.wujia.pet.repository.UserAccountRepository;
 import com.wujia.pet.service.MapSearchService;
@@ -15,6 +17,7 @@ import com.wujia.pet.service.MiniAppTokenService;
 import com.wujia.pet.service.PetAiService;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,9 +46,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/miniapp/api")
 public class MiniAppApiController {
 
+    private static final DateTimeFormatter COMMENT_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final UserAccountRepository userRepository;
     private final PetFriendlyPlaceRepository placeRepository;
     private final PlaceCommentRepository commentRepository;
+    private final PlaceFavoriteRepository favoriteRepository;
     private final SysAreaRepository sysAreaRepository;
     private final PasswordEncoder passwordEncoder;
     private final MiniAppTokenService tokenService;
@@ -56,6 +62,7 @@ public class MiniAppApiController {
             UserAccountRepository userRepository,
             PetFriendlyPlaceRepository placeRepository,
             PlaceCommentRepository commentRepository,
+            PlaceFavoriteRepository favoriteRepository,
             SysAreaRepository sysAreaRepository,
             PasswordEncoder passwordEncoder,
             MiniAppTokenService tokenService,
@@ -64,6 +71,7 @@ public class MiniAppApiController {
         this.userRepository = userRepository;
         this.placeRepository = placeRepository;
         this.commentRepository = commentRepository;
+        this.favoriteRepository = favoriteRepository;
         this.sysAreaRepository = sysAreaRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
@@ -215,6 +223,51 @@ public class MiniAppApiController {
                 .toList();
     }
 
+    @GetMapping("/places/mine")
+    public List<Map<String, Object>> myPlaces(
+            @RequestHeader(value = "X-Miniapp-Token", required = false) String token) {
+        UserAccount user = tokenService.requireUser(token);
+        List<PetFriendlyPlace> places = placeRepository.findByUploadedByUsernameOrderByIdDesc(user.getUsername());
+        applyRatingSummary(places);
+        return places.stream().map(place -> placeDto(place, user)).toList();
+    }
+
+    @GetMapping("/favorites")
+    public List<Map<String, Object>> favorites(
+            @RequestHeader(value = "X-Miniapp-Token", required = false) String token) {
+        UserAccount user = tokenService.requireUser(token);
+        List<PetFriendlyPlace> places = favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(PlaceFavorite::getPlace)
+                .toList();
+        applyRatingSummary(places);
+        return places.stream().map(place -> placeDto(place, user)).toList();
+    }
+
+    @PostMapping("/places/{id}/favorite")
+    public Map<String, Object> favorite(
+            @RequestHeader(value = "X-Miniapp-Token", required = false) String token,
+            @PathVariable Long id) {
+        UserAccount user = tokenService.requireUser(token);
+        PetFriendlyPlace place = placeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("地点不存在。"));
+        if (!favoriteRepository.existsByUserIdAndPlaceId(user.getId(), id)) {
+            PlaceFavorite favorite = new PlaceFavorite();
+            favorite.setUser(user);
+            favorite.setPlace(place);
+            favoriteRepository.save(favorite);
+        }
+        return Map.of("favorited", true);
+    }
+
+    @DeleteMapping("/places/{id}/favorite")
+    public Map<String, Object> unfavorite(
+            @RequestHeader(value = "X-Miniapp-Token", required = false) String token,
+            @PathVariable Long id) {
+        UserAccount user = tokenService.requireUser(token);
+        favoriteRepository.findByUserIdAndPlaceId(user.getId(), id).ifPresent(favoriteRepository::delete);
+        return Map.of("favorited", false);
+    }
+
     @GetMapping("/places/{id}")
     public Map<String, Object> placeDetail(
             @RequestHeader(value = "X-Miniapp-Token", required = false) String token,
@@ -230,6 +283,9 @@ public class MiniAppApiController {
             @RequestHeader(value = "X-Miniapp-Token", required = false) String token,
             @RequestBody PlaceRequest request) {
         UserAccount user = tokenService.requireUser(token);
+        if (request == null || text(request.cityCode()).isBlank()) {
+            throw new IllegalArgumentException("无法确定地点所在城市，请重新选择地点。");
+        }
         PetFriendlyPlace place = new PetFriendlyPlace();
         applyPlace(place, request);
         place.setUploadedBy(user);
@@ -259,6 +315,7 @@ public class MiniAppApiController {
             @PathVariable Long id) {
         UserAccount user = tokenService.requireUser(token);
         PetFriendlyPlace place = requireEditablePlace(id, user);
+        favoriteRepository.deleteByPlaceId(place.getId());
         commentRepository.deleteByPlaceId(place.getId());
         placeRepository.delete(place);
         return Map.of("success", true);
@@ -336,7 +393,13 @@ public class MiniAppApiController {
     public Map<String, Object> mapReverse(
             @RequestParam Double latitude,
             @RequestParam Double longitude) {
-        return mapSearchService.reverse(latitude, longitude);
+        Map<String, Object> reverse = new LinkedHashMap<>(mapSearchService.reverse(latitude, longitude));
+        String cityName = text(String.valueOf(reverse.getOrDefault("cityName", "")));
+        reverse.put("cityCode", cityName.isBlank() ? "" : sysAreaRepository
+                .findFirstByNameAndAreaTypeOrderByIdAsc(cityName, "2")
+                .map(SysArea::getCityCode)
+                .orElse(""));
+        return reverse;
     }
 
     @PostMapping("/qa/ask")
@@ -355,6 +418,10 @@ public class MiniAppApiController {
         place.setName(required(request.name(), "请填写地点名称。"));
         place.setType(parseEnum(PlaceType.class, request.type(), PlaceType.PARK).categoryType());
         place.setAddress(text(request.address()));
+        place.setPhone(text(request.phone()));
+        if (!text(request.cityCode()).isBlank()) {
+            place.setCityCode(text(request.cityCode()));
+        }
         place.setLatitude(request.latitude());
         place.setLongitude(request.longitude());
         place.setDescription(text(request.description()));
@@ -443,6 +510,7 @@ public class MiniAppApiController {
         dto.put("type", categoryType);
         dto.put("typeName", categoryType.getDisplayName());
         dto.put("address", place.getAddress());
+        dto.put("phone", place.getPhone());
         dto.put("latitude", place.getLatitude());
         dto.put("longitude", place.getLongitude());
         dto.put("description", place.getDescription());
@@ -458,10 +526,15 @@ public class MiniAppApiController {
         dto.put("ratingText", place.getRatingText());
         dto.put("averageRating", place.getAverageRating());
         dto.put("commentCount", place.getCommentCount());
-        dto.put("uploadedBy", place.getUploadedBy() == null ? "" : place.getUploadedBy().getUsername());
+        dto.put("uploadedBy", place.getUploadedBy() == null ? "" : displayName(place.getUploadedBy()));
+        dto.put("cityName", place.getCityCode() == null || place.getCityCode().isBlank()
+                ? ""
+                : sysAreaRepository.findByCityCode(place.getCityCode()).map(SysArea::getName).orElse(""));
+        dto.put("cityCode", place.getCityCode());
         dto.put("placeSourceType", place.getPlaceSourceType());
         dto.put("placeSourceName", place.getPlaceSourceType().getDisplayName());
         dto.put("editable", user != null && (place.getUploadedBy() != null && Objects.equals(place.getUploadedBy().getUsername(), user.getUsername()) || "ROLE_ADMIN".equals(user.getRole())));
+        dto.put("favorited", user != null && favoriteRepository.existsByUserIdAndPlaceId(user.getId(), place.getId()));
         return dto;
     }
 
@@ -469,11 +542,12 @@ public class MiniAppApiController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", comment.getId());
         dto.put("placeId", comment.getPlace().getId());
-        dto.put("username", comment.getUser().getUsername());
+        dto.put("username", displayName(comment.getUser()));
+        dto.put("nickname", displayName(comment.getUser()));
         dto.put("rating", comment.getRating());
         dto.put("stars", comment.getStars());
         dto.put("content", comment.getContent());
-        dto.put("createdAt", String.valueOf(comment.getCreatedAt()));
+        dto.put("createdAt", comment.getCreatedAt() == null ? "" : comment.getCreatedAt().format(COMMENT_TIME_FORMAT));
         dto.put("imageUrl", comment.hasImage() ? "/miniapp/api/comments/" + comment.getId() + "/image" : "");
         dto.put("editable", user != null && (Objects.equals(comment.getUser().getUsername(), user.getUsername()) || "ROLE_ADMIN".equals(user.getRole())));
         return dto;
@@ -536,6 +610,11 @@ public class MiniAppApiController {
         return nickname.toString();
     }
 
+    private String displayName(UserAccount user) {
+        String nickname = text(user.getNickname());
+        return nickname.isBlank() ? user.getUsername() : nickname;
+    }
+
     private record LoginRequest(String username, String password) {
     }
 
@@ -549,6 +628,8 @@ public class MiniAppApiController {
             String name,
             String type,
             String address,
+            String phone,
+            String cityCode,
             Double latitude,
             Double longitude,
             String description,

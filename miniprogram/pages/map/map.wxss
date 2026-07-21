@@ -11,7 +11,11 @@
   right: 0;
   top: 0;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 220rpx);
+}
+
+.main-map.drawer-expanded {
+  height: 28vh;
 }
 
 .map-topbar {
@@ -79,8 +83,7 @@
 .map-locate {
   position: absolute;
   right: 26rpx;
-  top: 56vh;
-  z-index: 5;
+  z-index: 7;
   width: 82rpx;
   height: 82rpx;
   border-radius: 26rpx;
@@ -89,6 +92,15 @@
   font-size: 42rpx;
   font-weight: 800;
   line-height: 82rpx;
+  transition: bottom 0.2s ease;
+}
+
+.map-locate.drawer-collapsed {
+  bottom: 244rpx;
+}
+
+.map-locate.drawer-expanded {
+  bottom: calc(72vh + 24rpx);
 }
 
 .bottom-drawer {
@@ -97,7 +109,7 @@
   right: 0;
   bottom: 0;
   z-index: 6;
-  padding: 10rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  padding: 10rpx 24rpx 18rpx;
   border-radius: 32rpx 32rpx 0 0;
   background: #f7f4ee;
   box-shadow: 0 -18rpx 50rpx rgba(20, 20, 20, 0.16);
@@ -106,7 +118,7 @@
 }
 
 .bottom-drawer.collapsed {
-  height: 380rpx;
+  height: 220rpx;
 }
 
 .bottom-drawer.expanded {
@@ -119,6 +131,10 @@
   margin: 4rpx auto 18rpx;
   border-radius: 999rpx;
   background: rgba(20, 20, 20, 0.18);
+}
+
+.drawer-gesture-zone {
+  touch-action: none;
 }
 
 .drawer-head {
@@ -193,7 +209,8 @@
 }
 
 .bottom-drawer.collapsed .place-scroll {
-  height: 118rpx;
+  display: none;
+  height: 0;
   overflow: hidden;
 }
 

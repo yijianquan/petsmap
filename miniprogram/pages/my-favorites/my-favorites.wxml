@@ -1,0 +1,15 @@
+<view class="page list-page">
+  <view class="page-head">
+    <text class="page-title">我的收藏</text>
+    <text class="page-subtitle">共 {{places.length}} 个地点</text>
+  </view>
+  <view wx:for="{{places}}" wx:key="id" class="place-card" data-id="{{item.id}}" bindtap="openPlace">
+    <view class="place-main">
+      <text class="place-name">{{item.name}}</text>
+      <text class="place-address">{{item.address || '暂无地址'}}</text>
+      <view class="place-meta"><text>★ {{item.ratingText}}</text><text>{{item.commentCount}} 条评论</text><text>{{item.typeName}}</text></view>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+  <view wx:if="{{!loading && places.length === 0}}" class="empty">你还没有收藏地点。</view>
+</view>

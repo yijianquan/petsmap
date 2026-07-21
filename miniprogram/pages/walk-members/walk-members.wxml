@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="member-head"><text class="title">{{name}}</text><text class="count">{{members.length}} 位成员</text></view>
+  <view class="member-list">
+    <view wx:for="{{members}}" wx:key="id" class="member-row" data-index="{{index}}" bindtap="showMember"><image class="avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><text class="nickname">{{item.nickname}}</text><text wx:if="{{item.owner}}" class="owner-tag">群主</text></view>
+  </view>
+  <view class="invite-bar"><button class="invite-btn" open-type="share">邀请朋友加入群聊</button></view>
+  <view wx:if="{{selectedMember}}" class="member-mask" bindtap="closeMember"><view class="member-card" catchtap="noop"><image class="profile-avatar" src="{{selectedMember.avatarSrc}}" mode="aspectFill"/><text class="profile-name">{{selectedMember.nickname}}</text><text wx:if="{{selectedMember.owner}}" class="owner-tag">群主</text><text class="profile-tip">更多宠物资料将在后续版本开放</text></view></view>
+</view>

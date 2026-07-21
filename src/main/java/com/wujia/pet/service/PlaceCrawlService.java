@@ -31,13 +31,19 @@ import org.springframework.web.util.UriUtils;
 public class PlaceCrawlService {
 
     private static final int PAGE_SIZE = 20;
-    private static final int MAX_PAGE = 5;
+    private static final int DEFAULT_MAX_PAGE = 5;
+    private static final int PRIORITY_MAX_PAGE = 10;
+    private static final long AMAP_REQUEST_INTERVAL_MS = 1_100L;
+    private static final int QPS_RETRY_LIMIT = 4;
     private static final String PROVIDER = "AMAP";
 
     private final RestClient restClient;
     private final PetFriendlyPlaceRepository placeRepository;
     private final SysAreaRepository sysAreaRepository;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Object amapRateLock = new Object();
+
+    private long nextAmapRequestAt;
 
     private volatile CrawlStatus status = CrawlStatus.idle();
 
@@ -96,25 +102,37 @@ public class PlaceCrawlService {
         int skipped = 0;
         try {
             ExistingPlaces existing = loadExistingPlaces();
+            SearchScope cityScope = cityScope(city, sysArea);
+            List<SearchScope> districtScopes = loadDistrictScopes(cityScope);
             for (CrawlPlan plan : crawlPlans()) {
-                updateProgress(city, batchId, fetched, inserted, skipped, "正在采集：" + plan.keyword());
-                for (int page = 1; page <= MAX_PAGE; page++) {
-                    List<CrawlCandidate> candidates = searchAmap(city, sysArea, plan, page);
-                    if (candidates.isEmpty()) {
-                        break;
-                    }
-                    fetched += candidates.size();
-                    for (CrawlCandidate candidate : candidates) {
-                        if (isDuplicate(candidate, existing)) {
-                            skipped++;
-                            continue;
+                String planLabel = crawlPlanLabel(plan);
+                List<SearchScope> scopes = text(plan.keyword()).isBlank() ? districtScopes : List.of(cityScope);
+                for (SearchScope scope : scopes) {
+                    updateProgress(city, batchId, fetched, inserted, skipped,
+                            "正在采集：" + planLabel + " · " + scope.name());
+                    for (int page = 1; page <= plan.maxPage(); page++) {
+                        AmapSearchPage searchPage = searchAmap(scope, sysArea, plan, page);
+                        if (searchPage.rawCount() == 0) {
+                            break;
                         }
-                        PetFriendlyPlace place = toPlace(candidate, sysArea, batchId, uploader);
-                        placeRepository.save(place);
-                        existing.add(candidate);
-                        inserted++;
+                        fetched += searchPage.rawCount();
+                        for (CrawlCandidate candidate : searchPage.candidates()) {
+                            if (isDuplicate(candidate, existing)) {
+                                enrichExistingPhone(candidate);
+                                skipped++;
+                                continue;
+                            }
+                            PetFriendlyPlace place = toPlace(candidate, sysArea, batchId, uploader);
+                            placeRepository.save(place);
+                            existing.add(candidate);
+                            inserted++;
+                        }
+                        updateProgress(city, batchId, fetched, inserted, skipped,
+                                "正在采集：" + planLabel + " · " + scope.name());
+                        if (searchPage.rawCount() < PAGE_SIZE) {
+                            break;
+                        }
                     }
-                    updateProgress(city, batchId, fetched, inserted, skipped, "正在采集：" + plan.keyword());
                 }
             }
             status = new CrawlStatus(false, city, batchId, fetched, inserted, skipped,
@@ -150,35 +168,55 @@ public class PlaceCrawlService {
         return existing.nameAddressKeys().contains(nameAddressKey(candidate.name(), candidate.address()));
     }
 
-    private List<CrawlCandidate> searchAmap(String city, SysArea sysArea, CrawlPlan plan, int page) {
-        List<CrawlCandidate> strictResults = queryAmap(plan.keyword(), city, true, sysArea, plan, page);
-        if (!strictResults.isEmpty() || sysArea == null) {
-            return strictResults;
+    private void enrichExistingPhone(CrawlCandidate candidate) {
+        if (candidate.phone().isBlank()) {
+            return;
         }
-        return queryAmap(crawlCityName(sysArea) + " " + plan.keyword(), "", false, sysArea, plan, page);
+        PetFriendlyPlace place = (!candidate.sourcePoiId().isBlank()
+                ? placeRepository.findBySourceProviderAndSourcePoiId(candidate.sourceProvider(), candidate.sourcePoiId())
+                : java.util.Optional.<PetFriendlyPlace>empty())
+                .or(() -> placeRepository.findFirstByNameAndAddress(candidate.name(), candidate.address()))
+                .orElse(null);
+        if (place != null && text(place.getPhone()).isBlank()) {
+            place.setPhone(candidate.phone());
+            place.setLastCrawledAt(LocalDateTime.now());
+            placeRepository.save(place);
+        }
     }
 
-    private List<CrawlCandidate> queryAmap(
-            String keyword,
-            String city,
-            boolean cityLimit,
+    private SearchScope cityScope(String city, SysArea sysArea) {
+        String code = sysArea != null && sysArea.getAdcode() != null && sysArea.getAdcode() > 0
+                ? String.valueOf(sysArea.getAdcode())
+                : city;
+        return new SearchScope(code, city);
+    }
+
+    private AmapSearchPage searchAmap(
+            SearchScope scope,
             SysArea sysArea,
             CrawlPlan plan,
             int page) {
         URI uri = URI.create("https://restapi.amap.com/v3/place/text"
-                + "?keywords=" + encode(keyword)
-                + "&city=" + encode(city)
-                + "&citylimit=" + cityLimit
+                + "?keywords=" + encode(plan.keyword())
+                + "&types=" + encode(plan.typeCodes())
+                + "&city=" + encode(scope.code())
+                + "&citylimit=true"
                 + "&offset=" + PAGE_SIZE
                 + "&page=" + page
                 + "&extensions=base"
                 + "&key=" + encode(amapKey));
-        JsonNode root = restClient.get().uri(uri).retrieve().body(JsonNode.class);
-        if (root == null || !"1".equals(root.path("status").asText())) {
-            return List.of();
+        JsonNode root = requestAmapWithRetry(uri);
+        if (root == null) {
+            throw new IllegalStateException("高德接口未返回数据。");
+        }
+        if (!"1".equals(root.path("status").asText())) {
+            throw new IllegalStateException("高德接口错误：" + root.path("info").asText("未知错误")
+                    + "（" + root.path("infocode").asText("") + "）");
         }
         List<CrawlCandidate> results = new ArrayList<>();
-        for (JsonNode poi : root.path("pois")) {
+        JsonNode pois = root.path("pois");
+        int rawCount = pois.isArray() ? pois.size() : 0;
+        for (JsonNode poi : pois) {
             if (!matchesTargetCity(poi, sysArea)) {
                 continue;
             }
@@ -187,7 +225,74 @@ public class PlaceCrawlService {
                 results.add(candidate);
             }
         }
-        return results;
+        return new AmapSearchPage(results, rawCount);
+    }
+
+    private List<SearchScope> loadDistrictScopes(SearchScope cityScope) {
+        try {
+            URI uri = URI.create("https://restapi.amap.com/v3/config/district"
+                    + "?keywords=" + encode(cityScope.code())
+                    + "&subdistrict=1&extensions=base&key=" + encode(amapKey));
+            JsonNode root = requestAmapWithRetry(uri);
+            if (root == null || !"1".equals(root.path("status").asText())) {
+                return List.of(cityScope);
+            }
+            LinkedHashSet<SearchScope> scopes = new LinkedHashSet<>();
+            JsonNode districts = root.path("districts");
+            if (districts.isArray() && !districts.isEmpty()) {
+                for (JsonNode district : districts.get(0).path("districts")) {
+                    String adcode = text(district.path("adcode").asText(""));
+                    String name = text(district.path("name").asText(""));
+                    if (!adcode.isBlank() && !name.isBlank()) {
+                        scopes.add(new SearchScope(adcode, name));
+                    }
+                }
+            }
+            return scopes.isEmpty() ? List.of(cityScope) : List.copyOf(scopes);
+        } catch (RuntimeException exception) {
+            return List.of(cityScope);
+        }
+    }
+
+    private JsonNode requestAmapWithRetry(URI uri) {
+        for (int attempt = 0; attempt <= QPS_RETRY_LIMIT; attempt++) {
+            throttleAmapRequest();
+            JsonNode root = restClient.get().uri(uri).retrieve().body(JsonNode.class);
+            if (root == null || "1".equals(root.path("status").asText())) {
+                return root;
+            }
+            String infoCode = root.path("infocode").asText("");
+            if (!isRetryableAmapLimit(infoCode) || attempt == QPS_RETRY_LIMIT) {
+                return root;
+            }
+            waitBeforeRetry((long) Math.pow(2, attempt + 1) * 1_000L);
+        }
+        return null;
+    }
+
+    private void throttleAmapRequest() {
+        synchronized (amapRateLock) {
+            long now = System.currentTimeMillis();
+            long waitMillis = Math.max(0L, nextAmapRequestAt - now);
+            if (waitMillis > 0) {
+                waitBeforeRetry(waitMillis);
+            }
+            nextAmapRequestAt = System.currentTimeMillis() + AMAP_REQUEST_INTERVAL_MS;
+        }
+    }
+
+    private boolean isRetryableAmapLimit(String infoCode) {
+        return Set.of("10014", "10015", "10016", "10019", "10020", "10021", "10022", "10023")
+                .contains(text(infoCode));
+    }
+
+    private void waitBeforeRetry(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("采集任务已停止。", exception);
+        }
     }
 
     private boolean matchesTargetCity(JsonNode poi, SysArea sysArea) {
@@ -265,9 +370,11 @@ public class PlaceCrawlService {
                 poi.path("cityname").asText(""),
                 poi.path("adname").asText(""),
                 poi.path("address").asText(""));
+        String phone = normalizePhone(poi.path("tel").asText(""));
         String poiText = name + " " + poiType + " " + address;
-        PlaceType inferredType = inferType(poiText);
-        if (!acceptCandidate(inferredType, plan.typeHint(), poiText)) {
+        String typeCode = text(poi.path("typecode").asText(""));
+        PlaceType inferredType = inferType(poiText, typeCode);
+        if (!acceptCandidate(inferredType, plan.typeHint(), poiText, matchesPlanTypeCode(typeCode, plan.typeCodes()))) {
             return null;
         }
         PlaceType type = normalizeAcceptedType(inferredType, plan.typeHint(), poiText);
@@ -276,10 +383,11 @@ public class PlaceCrawlService {
         return new CrawlCandidate(
                 PROVIDER,
                 text(poi.path("id").asText("")),
-                plan.keyword(),
+                text(plan.keyword()).isBlank() ? plan.typeHint().getDisplayName() + "分类" : plan.keyword(),
                 name,
                 type,
                 address,
+                phone,
                 latitude,
                 longitude,
                 tags,
@@ -291,6 +399,7 @@ public class PlaceCrawlService {
         place.setName(candidate.name());
         place.setType(candidate.type().categoryType());
         place.setAddress(candidate.address());
+        place.setPhone(candidate.phone());
         place.setLatitude(candidate.latitude());
         place.setLongitude(candidate.longitude());
         place.setTags(String.join(",", candidate.tags()));
@@ -318,46 +427,30 @@ public class PlaceCrawlService {
         return candidate.tags().contains(tag);
     }
 
+    private String normalizePhone(String value) {
+        String phone = text(value).replace(";", " / ");
+        return phone.length() > 120 ? phone.substring(0, 120) : phone;
+    }
+
     private List<CrawlPlan> crawlPlans() {
         List<CrawlPlan> plans = new ArrayList<>();
-        addPlans(plans, PlaceType.RESTAURANT,
-                "宠物友好餐厅", "可带宠物餐厅", "狗狗友好餐厅", "猫咪友好餐厅", "可带狗餐厅",
-                "可带猫餐厅", "带宠物吃饭", "宠物友好咖啡", "宠物友好咖啡馆", "可带宠物咖啡",
-                "可带狗咖啡", "狗狗咖啡", "猫咪咖啡", "宠物友好茶馆", "宠物友好酒吧",
-                "宠物友好烘焙", "宠物友好甜品", "宠物友好简餐",
-                "露台餐厅 宠物", "外摆餐厅 宠物", "户外餐厅 宠物",
-                "庭院餐厅 宠物", "可带狗露台", "可带宠物露台", "宠物可进店 餐厅",
-                "宠物可进店 咖啡", "狗狗可进店 餐厅");
-        addPlans(plans, PlaceType.HOTEL,
-                "宠物友好酒店", "可携带宠物酒店", "允许携带宠物酒店", "可带宠物酒店",
-                "可带狗酒店", "狗狗友好酒店", "猫咪友好酒店", "宠物友好民宿",
-                "可带宠物民宿", "允许宠物入住民宿", "宠物友好客栈", "宠物友好度假村",
-                "可带宠物度假村", "宠物友好露营地", "可带宠物营地", "宠物友好房车营地",
-                "可带狗民宿", "可带狗营地", "宠物友好庄园酒店", "宠物友好帐篷营地",
-                "带宠物住宿", "宠物可入住", "携宠入住", "携宠酒店", "携宠民宿");
-        addPlans(plans, PlaceType.PET_STORE,
-                "宠物店", "宠物用品店", "宠物生活馆", "宠物服务中心", "宠物超市",
-                "宠物食品店", "宠物洗护", "宠物洗澡", "宠物美容", "宠物寄养",
-                "宠物训练", "宠物托管", "宠物摄影", "宠物乐园", "宠物会所",
-                "犬舍", "猫舍", "犬猫生活馆", "猫咖", "狗咖", "宠物集合店",
-                "宠物鲜食", "宠物烘焙", "宠物殡葬", "宠物救助", "宠物影像中心");
-        addPlans(plans, PlaceType.HOSPITAL,
-                "宠物医院", "动物医院", "兽医诊所", "宠物诊所", "动物诊所",
-                "宠物医疗", "宠物急诊", "24小时宠物医院", "24小时动物医院", "夜间宠物急诊",
-                "宠物体检", "宠物疫苗", "宠物绝育", "宠物牙科", "宠物眼科",
-                "宠物骨科", "宠物皮肤病", "猫专科医院", "犬猫医院", "动物医疗中心",
-                "宠物康复", "异宠医院");
-        addPlans(plans, PlaceType.PARK,
-                "宠物友好景点", "可带宠物景点", "可带狗景点", "狗狗友好景点",
-                "宠物友好旅游景点", "可带宠物旅游景点", "宠物友好风景区", "可带宠物风景区",
-                "宠物友好公园", "可带宠物公园", "遛狗公园", "狗狗公园", "宠物活动区",
-                "宠物友好绿地", "遛狗绿地", "宠物友好草坪", "遛狗草坪",
-                "宠物友好森林公园", "宠物友好湿地公园",
-                "宠物友好滨江",
-                "宠物友好绿道", "可带宠物绿道", "宠物友好步道", "可带狗步道",
-                "徒步路线 宠物", "登山步道 宠物", "宠物友好露营", "可带宠物露营",
-                "可带宠物农场", "宠物友好农场", "宠物友好庄园", "亲子农场 宠物",
-                "户外营地 宠物", "露营地 宠物", "宠物友好骑行道");
+        addCategoryPlan(plans, PlaceType.HOSPITAL, "090700|090701|090702");
+        addCategoryPlan(plans, PlaceType.PET_STORE, "061211");
+        addPriorityPlans(plans, PlaceType.HOSPITAL, "090700|090701|090702",
+                "宠物医院"/*, "动物医院", "兽医诊所", "宠物诊所", "动物诊所",
+                "宠物急诊", "24小时宠物医院", "犬猫医院", "动物医疗中心", "异宠医院"*/);
+        addPriorityPlans(plans, PlaceType.PET_STORE, "061211",
+                "宠物店"/*, "宠物用品店", "宠物生活馆", "宠物服务中心", "宠物超市",
+                "宠物洗护", "宠物美容", "宠物寄养", "宠物会所", "犬猫生活馆"*/);
+//        addPlans(plans, PlaceType.RESTAURANT,
+//                "宠物友好餐厅", "可带宠物餐厅");
+//        addPlans(plans, PlaceType.HOTEL,
+//                "宠物友好酒店", "宠物友好民宿", "宠物友好客栈", "可带宠物度假村", "宠物友好露营地", "可带宠物营地", "宠物友好房车营地",
+//                "可带狗民宿", "宠物可入住", "携宠入住", "携宠酒店", "携宠民宿");
+//        addPlans(plans, PlaceType.PARK,
+//                "宠物友好景点",
+//                "宠物友好公园", "可带宠物公园", "遛狗公园", "狗狗公园", "遛狗草坪",
+//                "宠物友好森林公园", "宠物友好湿地公园");
         return List.copyOf(plans);
     }
 
@@ -370,16 +463,34 @@ public class PlaceCrawlService {
             String clean = text(keyword);
             String key = clean + "::" + type;
             if (!clean.isBlank() && existing.add(key)) {
-                plans.add(new CrawlPlan(clean, type));
+                plans.add(new CrawlPlan(clean, type, "", DEFAULT_MAX_PAGE));
             }
         }
     }
 
-    private boolean acceptCandidate(PlaceType inferredType, PlaceType planType, String rawText) {
+    private void addCategoryPlan(List<CrawlPlan> plans, PlaceType type, String typeCodes) {
+        plans.add(new CrawlPlan("", type, typeCodes, PRIORITY_MAX_PAGE));
+    }
+
+    private String crawlPlanLabel(CrawlPlan plan) {
+        return text(plan.keyword()).isBlank() ? plan.typeHint().getDisplayName() + "（高德分类）" : plan.keyword();
+    }
+
+    private void addPriorityPlans(List<CrawlPlan> plans, PlaceType type, String typeCodes, String... keywords) {
+        for (String keyword : keywords) {
+            plans.add(new CrawlPlan(keyword, type, typeCodes, DEFAULT_MAX_PAGE));
+        }
+    }
+
+    private boolean acceptCandidate(
+            PlaceType inferredType,
+            PlaceType planType,
+            String rawText,
+            boolean trustedTypeCode) {
         if (inferredType == null || planType == null || inferredType.categoryType() == PlaceType.MALL) {
             return false;
         }
-        if (!hasPrecisePetSignal(inferredType, rawText)) {
+        if (!trustedTypeCode && !hasPrecisePetSignal(inferredType, rawText)) {
             return false;
         }
         if (inferredType.categoryType() == planType.categoryType()) {
@@ -388,6 +499,19 @@ public class PlaceCrawlService {
         return planType.categoryType() == PlaceType.PARK
                 && inferredType.categoryType() == PlaceType.PET_STORE
                 && containsAny(rawText, "宠物公园", "宠物运动公园", "宠物乐园");
+    }
+
+    private boolean matchesPlanTypeCode(String typeCode, String configuredCodes) {
+        String cleanTypeCode = text(typeCode);
+        if (cleanTypeCode.isBlank()) {
+            return false;
+        }
+        for (String configuredCode : text(configuredCodes).split("\\|")) {
+            if (cleanTypeCode.equals(text(configuredCode))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean hasPrecisePetSignal(PlaceType inferredType, String rawText) {
@@ -411,7 +535,13 @@ public class PlaceCrawlService {
         return inferredType.categoryType();
     }
 
-    private PlaceType inferType(String rawText) {
+    private PlaceType inferType(String rawText, String typeCode) {
+        if (text(typeCode).startsWith("0907")) {
+            return PlaceType.HOSPITAL;
+        }
+        if (text(typeCode).equals("061211")) {
+            return PlaceType.PET_STORE;
+        }
         String value = text(rawText).toLowerCase(Locale.ROOT);
         if (containsAny(value, "宠物医院", "动物医院", "兽医", "诊所", "医疗", "急诊", "疫苗", "绝育", "体检", "牙科", "眼科", "骨科", "皮肤病", "康复")) {
             return PlaceType.HOSPITAL;
@@ -567,7 +697,13 @@ public class PlaceCrawlService {
         }
     }
 
-    private record CrawlPlan(String keyword, PlaceType typeHint) {
+    private record CrawlPlan(String keyword, PlaceType typeHint, String typeCodes, int maxPage) {
+    }
+
+    private record SearchScope(String code, String name) {
+    }
+
+    private record AmapSearchPage(List<CrawlCandidate> candidates, int rawCount) {
     }
 
     private record CrawlCandidate(
@@ -577,6 +713,7 @@ public class PlaceCrawlService {
             String name,
             PlaceType type,
             String address,
+            String phone,
             Double latitude,
             Double longitude,
             List<String> tags,

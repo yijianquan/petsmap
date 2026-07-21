@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS pet_friendly_place (
     `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
     `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
     `address` varchar(240) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `phone` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `latitude` double DEFAULT NULL,
     `longitude` double DEFAULT NULL,
     `description` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -57,6 +58,44 @@ CREATE TABLE IF NOT EXISTS place_comment (
         FOREIGN KEY (place_id) REFERENCES pet_friendly_place (id),
     CONSTRAINT fk_comment_user
         FOREIGN KEY (user_id) REFERENCES user_account (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS walk_group (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(40) NOT NULL,
+    place_id BIGINT NOT NULL,
+    owner_id BIGINT NOT NULL,
+    city_code VARCHAR(30) NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_walk_group_place_name (place_id, name),
+    UNIQUE KEY uk_walk_group_place_owner (place_id, owner_id),
+    KEY idx_walk_group_city (city_code),
+    CONSTRAINT fk_walk_group_place FOREIGN KEY (place_id) REFERENCES pet_friendly_place(id) ON DELETE CASCADE,
+    CONSTRAINT fk_walk_group_owner FOREIGN KEY (owner_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS walk_group_member (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    joined_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_walk_group_member (group_id, user_id),
+    CONSTRAINT fk_walk_member_group FOREIGN KEY (group_id) REFERENCES walk_group(id) ON DELETE CASCADE,
+    CONSTRAINT fk_walk_member_user FOREIGN KEY (user_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS walk_group_message (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    sender_id BIGINT NOT NULL,
+    content VARCHAR(1000) NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_walk_message_group_id (group_id, id),
+    CONSTRAINT fk_walk_message_group FOREIGN KEY (group_id) REFERENCES walk_group(id) ON DELETE CASCADE,
+    CONSTRAINT fk_walk_message_sender FOREIGN KEY (sender_id) REFERENCES user_account(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO user_account (username, password, role, nickname)

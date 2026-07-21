@@ -12,6 +12,7 @@
     <nav class="admin-nav">
         <a th:href="@{/admin}">总览</a>
         <a class="active" th:href="@{/admin/places}">地点管理</a>
+        <a th:href="@{/admin/walk-groups}">群聊管理</a>
         <a th:href="@{/admin/areas}">城市管理</a>
         <a th:href="@{/admin/users}">微信用户</a>
     </nav>
@@ -96,7 +97,10 @@
                     </td>
                     <td class="ellipsis-cell" th:text="${item.type.displayName}">类型</td>
                     <td class="ellipsis-cell" th:text="${#strings.isEmpty(item.cityCode) ? '-' : (cityNameByCode.get(item.cityCode) ?: '-')}">城市</td>
-                    <td class="ellipsis-cell" th:text="${item.address}">地址</td>
+                    <td class="ellipsis-cell">
+                        <span th:text="${item.address}">地址</span>
+                        <span th:if="${!#strings.isEmpty(item.phone)}" th:text="${'电话：' + item.phone}">电话</span>
+                    </td>
                     <td class="ellipsis-cell" th:text="${item.ratingText}">评分</td>
                     <td class="ellipsis-cell" th:text="${item.uploadedBy == null ? '-' : item.uploadedBy.username}">上传者</td>
                     <td class="action-cell">
@@ -163,6 +167,7 @@
                 </span>
             </label>
             <label class="wide">地址<input th:field="*{address}" placeholder="城市、街道、门牌"></label>
+            <label class="wide">联系电话<input th:field="*{phone}" placeholder="固话或手机号"></label>
             <label>纬度<input th:field="*{latitude}" inputmode="decimal"></label>
             <label>经度<input th:field="*{longitude}" inputmode="decimal"></label>
             <div class="admin-tag-groups wide">
@@ -221,6 +226,7 @@
                     </span>
                 </label>
                 <label class="wide">地址<input name="address" th:value="${item.address}"></label>
+                <label class="wide">联系电话<input name="phone" th:value="${item.phone}"></label>
                 <label>纬度<input name="latitude" th:value="${item.latitude}" inputmode="decimal"></label>
                 <label>经度<input name="longitude" th:value="${item.longitude}" inputmode="decimal"></label>
                 <div class="admin-tag-groups wide">

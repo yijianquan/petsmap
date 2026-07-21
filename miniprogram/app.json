@@ -5,6 +5,12 @@
     "pages/search/search",
     "pages/city/city",
     "pages/place-detail/place-detail",
+    "pages/walk-groups/walk-groups",
+    "pages/place-groups/place-groups",
+    "pages/walk-chat/walk-chat",
+    "pages/walk-members/walk-members",
+    "pages/my-uploads/my-uploads",
+    "pages/my-favorites/my-favorites",
     "pages/login/login",
     "pages/mine/mine"
   ],
@@ -25,6 +31,12 @@
         "text": "地图",
         "iconPath": "images/tab-map.png",
         "selectedIconPath": "images/tab-map-active.png"
+      },
+      {
+        "pagePath": "pages/walk-groups/walk-groups",
+        "text": "一起遛",
+        "iconPath": "images/tab-walk.png",
+        "selectedIconPath": "images/tab-walk-active.png"
       },
       {
         "pagePath": "pages/mine/mine",

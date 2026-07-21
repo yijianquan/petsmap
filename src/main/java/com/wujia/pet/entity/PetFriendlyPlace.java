@@ -11,9 +11,12 @@ import jakarta.persistence.Index;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(indexes = {
@@ -36,6 +39,9 @@ public class PetFriendlyPlace {
 
     @Column(length = 240)
     private String address;
+
+    @Column(length = 120)
+    private String phone;
 
     private Double latitude;
 
@@ -92,6 +98,9 @@ public class PetFriendlyPlace {
     @ManyToOne(optional = false)
     private UserAccount uploadedBy;
 
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WalkGroup> walkGroups = new ArrayList<>();
+
     @Transient
     private double averageRating;
 
@@ -128,6 +137,14 @@ public class PetFriendlyPlace {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone == null ? "" : phone.trim();
     }
 
     public Double getLatitude() {

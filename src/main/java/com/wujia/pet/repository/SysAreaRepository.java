@@ -37,5 +37,7 @@ public interface SysAreaRepository extends JpaRepository<SysArea, Long> {
 
     Optional<SysArea> findByAdcode(Long adcode);
 
+    Optional<SysArea> findFirstByNameAndAreaTypeOrderByIdAsc(String name, String areaType);
+
     long countByPid(Long pid);
 }

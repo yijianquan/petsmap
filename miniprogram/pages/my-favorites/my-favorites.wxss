@@ -1,0 +1,11 @@
+.list-page { min-height: 100vh; }
+.page-head { margin: 12rpx 4rpx 28rpx; }
+.page-title { display: block; color: #111; font-size: 40rpx; font-weight: 800; }
+.page-subtitle { display: block; margin-top: 8rpx; color: #81786d; font-size: 24rpx; }
+.place-card { display: flex; align-items: center; gap: 18rpx; margin-bottom: 18rpx; padding: 26rpx; border-radius: 26rpx; background: #fff; box-shadow: 0 14rpx 40rpx rgba(20,20,20,.055); }
+.place-main { flex: 1; min-width: 0; }
+.place-name { display: block; overflow: hidden; color: #111; font-size: 31rpx; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.place-address { display: block; overflow: hidden; margin-top: 8rpx; color: #81786d; font-size: 24rpx; text-overflow: ellipsis; white-space: nowrap; }
+.place-meta { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 12rpx; color: #9a9186; font-size: 23rpx; }
+.arrow { color: #b6ada2; font-size: 48rpx; }
+.empty { padding: 80rpx 20rpx; color: #81786d; text-align: center; font-size: 26rpx; }

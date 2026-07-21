@@ -4,7 +4,7 @@ const defaultLocation = { latitude: 31.2304, longitude: 121.4737, label: "默认
 const defaultCityLocation = { name: "上海市", latitude: defaultLocation.latitude, longitude: defaultLocation.longitude };
 const markerIcons = {
   RESTAURANT: "./marker-restaurant.png",
-  MALL: "./marker-mall.png",
+  MALL: "./marker-mall-pink.png",
   HOTEL: "./marker-hotel.png",
   PARK: "./marker-park.png",
   SCENIC: "./marker-park.png",
@@ -14,7 +14,7 @@ const markerIcons = {
 };
 const typeColors = {
   RESTAURANT: "#F28C28",
-  MALL: "#111111",
+  MALL: "#EC4899",
   HOTEL: "#2F80ED",
   PARK: "#178F5D",
   SCENIC: "#178F5D",
@@ -24,7 +24,7 @@ const typeColors = {
 };
 const typeSoftColors = {
   RESTAURANT: "#FFF2E3",
-  MALL: "#F1F1F1",
+  MALL: "#FCE7F3",
   HOTEL: "#EAF3FF",
   PARK: "#EAF7F0",
   SCENIC: "#EAF7F0",
@@ -32,6 +32,7 @@ const typeSoftColors = {
   PET_STORE: "#F3EEFF",
   HOSPITAL: "#FFEEEE"
 };
+const typeOrder = ["HOSPITAL", "PET_STORE", "PARK", "MALL", "HOTEL", "RESTAURANT"];
 const cityCenters = {
   上海市: defaultCityLocation,
   北京市: { name: "北京市", latitude: 39.9042, longitude: 116.4074 },
@@ -47,7 +48,9 @@ Page({
   data: {
     latitude: defaultLocation.latitude,
     longitude: defaultLocation.longitude,
-    mapScale: 14,
+    userLatitude: null,
+    userLongitude: null,
+    mapScale: 16,
     city: "上海市",
     locationLabel: defaultLocation.label,
     searchLabel: "搜索目的地 / 地点",
@@ -62,9 +65,11 @@ Page({
     formTagOptions: [],
     formTagGroups: [],
     selectedTypes: [],
+    selectedPlaceId: null,
     keyword: "",
     destination: null,
     drawerExpanded: false,
+    drawerTouching: false,
     drawerTouchStartY: 0,
     showForm: false,
     placeSearchKeyword: "",
@@ -73,12 +78,22 @@ Page({
     form: emptyForm()
   },
 
-  onShow() {
+  async onShow() {
     this.setData({ baseUrl: baseUrl() });
     const city = wx.getStorageSync("selectedCity") || "上海市";
     const cityLocation = wx.getStorageSync("selectedCityLocation") || cityCenters[city] || null;
     const destination = wx.getStorageSync("selectedDestination") || null;
     const searchPlace = wx.getStorageSync("selectedPlaceKeyword") || "";
+    const openUploadForm = wx.getStorageSync("openUploadForm");
+    const editUploadPlace = wx.getStorageSync("editUploadPlace");
+    if (openUploadForm) {
+      wx.removeStorageSync("openUploadForm");
+      setTimeout(() => this.openAdd(), 0);
+    }
+    if (editUploadPlace) {
+      wx.removeStorageSync("editUploadPlace");
+      setTimeout(() => this.openEditForm(editUploadPlace), 0);
+    }
     if (destination) {
       wx.removeStorageSync("selectedDestination");
       this.setData({
@@ -86,12 +101,20 @@ Page({
         destination,
         latitude: destination.latitude,
         longitude: destination.longitude,
-        mapScale: 14,
+        mapScale: 16,
         locationLabel: `目的地：${destination.name}`,
         searchLabel: destination.name,
-        keyword: searchPlace
+        keyword: searchPlace,
+        selectedPlaceId: destination.id || null
       });
       this.loadOptions();
+      await this.refreshUserLocation();
+      this.loadPlaces();
+      return;
+    }
+    if (this.keepMapState) {
+      this.keepMapState = false;
+      await this.refreshUserLocation();
       this.loadPlaces();
       return;
     }
@@ -103,10 +126,11 @@ Page({
         locationLabel: city,
         latitude: cityLocation.latitude,
         longitude: cityLocation.longitude,
-        mapScale: 14,
+        mapScale: 16,
         destination: null
       });
       this.loadOptions();
+      await this.refreshUserLocation();
       this.loadPlaces();
       return;
     }
@@ -117,7 +141,7 @@ Page({
       locationLabel: defaultLocation.label,
       latitude: defaultLocation.latitude,
       longitude: defaultLocation.longitude,
-      mapScale: 14
+      mapScale: 16
     });
     this.loadOptions();
     this.locate();
@@ -125,7 +149,11 @@ Page({
 
   async loadOptions() {
     const data = await request({ url: "/miniapp/api/options" });
-    const placeTypes = data.placeTypes || [];
+    const placeTypes = [...(data.placeTypes || [])].sort((left, right) => {
+      const leftIndex = typeOrder.indexOf(left.value);
+      const rightIndex = typeOrder.indexOf(right.value);
+      return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex);
+    });
     const selectedTypes = this.data.selectedTypes || [];
     this.setData({
       placeTypes,
@@ -137,14 +165,34 @@ Page({
   },
 
   locate() {
+    this.clearSearchState();
+    this.setData({ selectedPlaceId: null });
     wx.getLocation({
       type: "gcj02",
-      success: (res) => {
+      success: async (res) => {
+        let city = this.data.city;
+        try {
+          const reverse = await request({
+            url: `/miniapp/api/map/reverse?latitude=${encodeURIComponent(res.latitude)}&longitude=${encodeURIComponent(res.longitude)}`
+          });
+          city = reverse.cityName || city;
+        } catch (error) {
+          // Keep the selected city if reverse geocoding is temporarily unavailable.
+        }
+        wx.setStorageSync("selectedCity", city);
+        wx.setStorageSync("selectedCityLocation", {
+          name: city,
+          latitude: res.latitude,
+          longitude: res.longitude
+        });
         this.setData({
+          city,
           latitude: res.latitude,
           longitude: res.longitude,
-          mapScale: 14,
-          locationLabel: "已使用当前位置排序"
+          userLatitude: res.latitude,
+          userLongitude: res.longitude,
+          mapScale: 16,
+          locationLabel: `当前位置：${city}`
         });
         this.loadPlaces();
       },
@@ -159,7 +207,7 @@ Page({
           city: "上海市",
           latitude: defaultLocation.latitude,
           longitude: defaultLocation.longitude,
-          mapScale: 14,
+          mapScale: 16,
           locationLabel: defaultLocation.label
         });
         this.loadPlaces();
@@ -219,7 +267,9 @@ Page({
     if (place.latitude == null || place.longitude == null) {
       return { ...place, distance: 999999, distanceText: "未标坐标", typeColor, typeSoftColor };
     }
-    const distance = calcDistance(this.data.latitude, this.data.longitude, place.latitude, place.longitude);
+    const originLatitude = this.data.userLatitude == null ? this.data.latitude : this.data.userLatitude;
+    const originLongitude = this.data.userLongitude == null ? this.data.longitude : this.data.userLongitude;
+    const distance = calcDistance(originLatitude, originLongitude, place.latitude, place.longitude);
     return {
       ...place,
       distance,
@@ -227,6 +277,15 @@ Page({
       typeColor,
       typeSoftColor
     };
+  },
+
+  async refreshUserLocation() {
+    try {
+      const point = await getCurrentPoint();
+      this.setData({ userLatitude: point.latitude, userLongitude: point.longitude });
+    } catch (error) {
+      // Distance falls back to the visible map center when location permission is unavailable.
+    }
   },
 
   refreshList() {
@@ -237,9 +296,13 @@ Page({
       const haystack = `${place.name || ""}${place.address || ""}${place.description || ""}${(place.tags || []).join("")}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
+    const selectedPlaceId = Number(this.data.selectedPlaceId);
+    const orderedPlaces = selectedPlaceId
+      ? [...filteredPlaces].sort((left, right) => (Number(right.id) === selectedPlaceId ? 1 : 0) - (Number(left.id) === selectedPlaceId ? 1 : 0))
+      : filteredPlaces;
     this.setData({
       filteredPlaces,
-      displayedPlaces: this.data.drawerExpanded ? filteredPlaces : filteredPlaces.slice(0, 1),
+      displayedPlaces: this.data.drawerExpanded ? orderedPlaces : orderedPlaces.slice(0, 1),
       markers: filteredPlaces
         .filter((place) => place.latitude != null && place.longitude != null)
         .map((place, index) => ({
@@ -253,7 +316,7 @@ Page({
           anchor: { x: 0.5, y: 1 },
           callout: {
             content: place.name,
-            display: "BYCLICK",
+            display: Number(place.id) === Number(this.data.selectedPlaceId) ? "ALWAYS" : "BYCLICK",
             color: "#111111",
             bgColor: "#ffffff",
             fontSize: 13,
@@ -270,8 +333,13 @@ Page({
   },
 
   onDrawerTouchStart(event) {
-    this.setData({ drawerTouchStartY: event.changedTouches[0].clientY });
+    this.setData({
+      drawerTouching: true,
+      drawerTouchStartY: event.changedTouches[0].clientY
+    });
   },
+
+  onDrawerTouchMove() {},
 
   onDrawerTouchEnd(event) {
     const endY = event.changedTouches[0].clientY;
@@ -284,6 +352,11 @@ Page({
       this.setData({ drawerExpanded: false });
       this.refreshList();
     }
+    this.setData({ drawerTouching: false });
+  },
+
+  onDrawerTouchCancel() {
+    this.setData({ drawerTouching: false });
   },
 
   selectType(event) {
@@ -307,6 +380,8 @@ Page({
   },
 
   openCity() {
+    this.clearSearchState();
+    this.setData({ selectedPlaceId: null });
     wx.navigateTo({ url: `/pages/city/city?city=${encodeURIComponent(this.data.city)}` });
   },
 
@@ -318,7 +393,14 @@ Page({
     const id = Number(event.currentTarget.dataset.id);
     const place = this.data.places.find((item) => Number(item.id) === id);
     if (place && place.latitude != null && place.longitude != null) {
-      this.setData({ latitude: place.latitude, longitude: place.longitude, mapScale: 14 });
+      this.clearSearchState();
+      this.setData({
+        latitude: place.latitude,
+        longitude: place.longitude,
+        mapScale: 16,
+        selectedPlaceId: id,
+        displayedPlaces: [place]
+      });
     }
   },
 
@@ -328,15 +410,37 @@ Page({
   },
 
   onMarkerTap(event) {
-    const id = event.detail.markerId;
-    const place = this.data.places.find((item) => Number(item.id) === Number(id));
-    if (place) {
-      this.navigateToPlace(place.id);
+    const id = Number(event.detail.markerId);
+    if (Number(this.data.selectedPlaceId) === id) {
+      this.clearSearchState();
+      this.navigateToPlace(id);
+      return;
     }
+    this.setData({ selectedPlaceId: id });
+    this.refreshList();
+  },
+
+  onCalloutTap(event) {
+    const id = Number(event.detail.markerId);
+    const place = this.data.places.find((item) => Number(item.id) === id);
+    if (!place) return;
+    this.clearSearchState();
+    this.navigateToPlace(place.id);
+  },
+
+  clearSearchState() {
+    wx.removeStorageSync("selectedPlaceKeyword");
+    wx.removeStorageSync("selectedDestination");
+    this.setData({
+      keyword: "",
+      searchLabel: "搜索目的地 / 地点",
+      destination: null
+    });
   },
 
   navigateToPlace(id) {
     if (!id) return;
+    this.keepMapState = true;
     wx.navigateTo({ url: `/pages/place-detail/place-detail?id=${id}` });
   },
 
@@ -357,6 +461,11 @@ Page({
     const id = Number(event.currentTarget.dataset.id);
     const place = this.data.places.find((item) => Number(item.id) === id);
     if (!place) return;
+    this.openEditForm(place);
+  },
+
+  openEditForm(place) {
+    if (!place) return;
     this.setData({
       showForm: true,
       editingId: id,
@@ -364,9 +473,12 @@ Page({
       placeSuggestions: [],
       form: {
         name: place.name || "",
-        type: place.type || "RESTAURANT",
-        typeName: place.typeName || "吃饭",
+        type: place.type || "PARK",
+        typeName: place.typeName || "散步",
         address: place.address || "",
+        phone: place.phone || "",
+        cityCode: place.cityCode || "",
+        cityName: place.cityName || "",
         latitude: place.latitude,
         longitude: place.longitude,
         description: place.description || "",
@@ -414,7 +526,7 @@ Page({
     }, 320);
   },
 
-  choosePlaceSuggestion(event) {
+  async choosePlaceSuggestion(event) {
     const index = Number(event.currentTarget.dataset.index);
     const place = this.data.placeSuggestions[index];
     if (!place) return;
@@ -423,11 +535,15 @@ Page({
       placeSuggestions: [],
       "form.name": place.name || "",
       "form.address": place.address || "",
+      "form.phone": place.phone || "",
+      "form.cityCode": "",
+      "form.cityName": place.cityName || "",
       "form.latitude": place.latitude,
       "form.longitude": place.longitude,
       "form.type": place.type || this.data.form.type,
       "form.typeName": place.typeName || this.data.form.typeName
     });
+    await this.resolveFormCity(place.latitude, place.longitude);
   },
 
   onTypeChange(event) {
@@ -482,6 +598,8 @@ Page({
       placeSuggestions: [],
       "form.name": name,
       "form.address": current.address || this.data.city,
+      "form.cityCode": current.cityCode || "",
+      "form.cityName": current.cityName || "",
       "form.latitude": current.latitude,
       "form.longitude": current.longitude
     });
@@ -495,10 +613,18 @@ Page({
       wx.showToast({ title: "请选择联想地点或当前位置", icon: "none" });
       return;
     }
+    if (!form.cityCode) {
+      await this.resolveFormCity(form.latitude, form.longitude);
+    }
+    const resolvedForm = this.data.form;
+    if (!resolvedForm.cityCode) {
+      wx.showToast({ title: "无法确定地点所在城市", icon: "none" });
+      return;
+    }
     const payload = {
-      ...form,
-      latitude: form.latitude == null ? this.data.latitude : form.latitude,
-      longitude: form.longitude == null ? this.data.longitude : form.longitude
+      ...resolvedForm,
+      latitude: resolvedForm.latitude == null ? this.data.latitude : resolvedForm.latitude,
+      longitude: resolvedForm.longitude == null ? this.data.longitude : resolvedForm.longitude
     };
     if (this.data.editingId) {
       await request({ url: `/miniapp/api/places/${this.data.editingId}`, method: "PUT", data: payload });
@@ -510,6 +636,16 @@ Page({
     this.loadPlaces();
   },
 
+  async resolveFormCity(latitude, longitude) {
+    if (latitude == null || longitude == null) return;
+    try {
+      const reverse = await request({ url: `/miniapp/api/map/reverse?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}` });
+      this.setData({ "form.cityCode": reverse.cityCode || "", "form.cityName": reverse.cityName || "" });
+    } catch (error) {
+      this.setData({ "form.cityCode": "", "form.cityName": "" });
+    }
+  },
+
   goMine() {
     wx.switchTab({ url: "/pages/mine/mine" });
   }
@@ -518,9 +654,12 @@ Page({
 function emptyForm() {
   return {
     name: "",
-    type: "RESTAURANT",
-    typeName: "吃饭",
+    type: "PARK",
+    typeName: "散步",
     address: "",
+    phone: "",
+    cityCode: "",
+    cityName: "",
     latitude: null,
     longitude: null,
     description: "",

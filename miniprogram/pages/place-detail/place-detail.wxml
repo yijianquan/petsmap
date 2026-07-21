@@ -1,8 +1,16 @@
 <view class="page detail-page">
   <view class="detail-head card" style="border-top-color: {{place.typeColor}};">
+    <view class="detail-actions">
+      <view class="detail-favorite-btn {{place.favorited ? 'active' : ''}}" bindtap="toggleFavorite" aria-label="{{place.favorited ? '取消收藏' : '收藏地点'}}">{{place.favorited ? '★' : '☆'}}</view>
+      <view class="detail-map-btn" bindtap="showOnMap" aria-label="在地图中定位">⌖</view>
+    </view>
     <text class="type-pill" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};">{{place.typeName || '地点'}}</text>
     <text class="place-name">{{place.name}}</text>
     <text class="place-address">{{place.address || '暂无地址'}}</text>
+    <view wx:if="{{place.phone}}" class="place-phone" bindtap="callPlace">
+      <text>联系电话：{{place.phone}}</text>
+      <text class="call-label">拨打</text>
+    </view>
     <view class="score-row">
       <text class="rating" style="color: {{place.typeColor}};">★ {{place.ratingText || '暂无评分'}}</text>
       <text class="muted">{{place.commentCount || 0}} 条评论</text>
@@ -25,16 +33,23 @@
       <text class="section-title">评论</text>
       <view class="small-btn" style="background: {{place.typeColor}}; box-shadow: 0 12rpx 28rpx {{place.typeSoftColor}};" bindtap="openComment">写评论</view>
     </view>
-    <view wx:for="{{comments}}" wx:key="id" class="comment-item">
-      <view class="row between">
-        <text class="comment-user">{{item.username}}</text>
-        <text class="rating" style="color: {{place.typeColor}};">{{item.stars}}</text>
+    <scroll-view wx:if="{{comments.length > 0}}" scroll-y class="comment-scroll">
+      <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+        <view class="row between">
+          <text class="comment-user">{{item.nickname || item.username}}</text>
+          <text class="rating" style="color: {{place.typeColor}};">{{item.stars}}</text>
+        </view>
+        <text class="body-text">{{item.content}}</text>
+        <image wx:if="{{item.imageUrl}}" class="comment-image" src="{{baseUrl + item.imageUrl}}" mode="aspectFill" />
+        <text class="muted comment-time">{{item.createdAt}}</text>
       </view>
-      <text class="body-text">{{item.content}}</text>
-      <image wx:if="{{item.imageUrl}}" class="comment-image" src="{{baseUrl + item.imageUrl}}" mode="aspectFill" />
-      <text class="muted comment-time">{{item.createdAt}}</text>
-    </view>
+    </scroll-view>
     <view wx:if="{{comments.length === 0}}" class="empty">还没有评论。</view>
+  </view>
+
+  <view class="navigate-bar">
+    <view class="navigate-icon-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="navigateToPlace" aria-label="导航"><text class="navigate-arrow">↗</text><text>导航</text></view>
+    <view class="group-entry-btn" style="background: {{place.typeColor}}; box-shadow: 0 14rpx 32rpx {{place.typeSoftColor}};" bindtap="openPlaceGroups">创建/加入群聊</view>
   </view>
 
   <view wx:if="{{showComment}}" class="sheet-mask" bindtap="closeComment">

@@ -10,6 +10,10 @@ import com.wujia.pet.repository.PetFriendlyPlaceRepository;
 import com.wujia.pet.repository.PlaceCommentRepository;
 import com.wujia.pet.repository.SysAreaRepository;
 import com.wujia.pet.repository.UserAccountRepository;
+import com.wujia.pet.repository.WalkGroupRepository;
+import com.wujia.pet.repository.WalkGroupMemberRepository;
+import com.wujia.pet.repository.WalkGroupMessageRepository;
+import com.wujia.pet.entity.WalkGroup;
 import com.wujia.pet.service.PlaceCrawlService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -47,18 +51,61 @@ public class AdminController {
     private final UserAccountRepository userRepository;
     private final SysAreaRepository sysAreaRepository;
     private final PlaceCrawlService placeCrawlService;
+    private final WalkGroupRepository walkGroupRepository;
+    private final WalkGroupMemberRepository walkGroupMemberRepository;
+    private final WalkGroupMessageRepository walkGroupMessageRepository;
 
     public AdminController(
             PetFriendlyPlaceRepository placeRepository,
             PlaceCommentRepository commentRepository,
             UserAccountRepository userRepository,
             SysAreaRepository sysAreaRepository,
-            PlaceCrawlService placeCrawlService) {
+            PlaceCrawlService placeCrawlService,
+            WalkGroupRepository walkGroupRepository,
+            WalkGroupMemberRepository walkGroupMemberRepository,
+            WalkGroupMessageRepository walkGroupMessageRepository) {
         this.placeRepository = placeRepository;
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
         this.sysAreaRepository = sysAreaRepository;
         this.placeCrawlService = placeCrawlService;
+        this.walkGroupRepository = walkGroupRepository;
+        this.walkGroupMemberRepository = walkGroupMemberRepository;
+        this.walkGroupMessageRepository = walkGroupMessageRepository;
+    }
+
+    @GetMapping("/walk-groups")
+    public String walkGroups(
+            @RequestParam(defaultValue = "") String cityCode,
+            @RequestParam(defaultValue = "") String groupName,
+            @RequestParam(defaultValue = "") String placeName,
+            @RequestParam(defaultValue = "0") int page,
+            Model model) {
+        Page<WalkGroup> groups = walkGroupRepository.searchAdmin(
+                cityCode.trim(), groupName.trim(), placeName.trim(),
+                PageRequest.of(Math.max(page, 0), 15, Sort.by(Sort.Direction.DESC, "id")));
+        Map<Long, Long> memberCounts = groups.getContent().stream().collect(Collectors.toMap(
+                WalkGroup::getId, group -> walkGroupMemberRepository.countByGroupId(group.getId())));
+        model.addAttribute("groups", groups);
+        model.addAttribute("memberCounts", memberCounts);
+        model.addAttribute("cityCode", cityCode.trim());
+        model.addAttribute("groupName", groupName.trim());
+        model.addAttribute("placeName", placeName.trim());
+        model.addAttribute("cityAreas", cityAreas());
+        model.addAttribute("cityNameByCode", cityNameByCode());
+        model.addAttribute("activeNav", "walk-groups");
+        return "admin-walk-groups";
+    }
+
+    @Transactional
+    @PostMapping("/walk-groups/{id}/delete")
+    public String deleteWalkGroup(@PathVariable Long id) {
+        walkGroupRepository.findById(id).ifPresent(group -> {
+            walkGroupMessageRepository.deleteByGroupId(id);
+            walkGroupMemberRepository.deleteByGroupId(id);
+            walkGroupRepository.delete(group);
+        });
+        return "redirect:/admin/walk-groups";
     }
 
     @GetMapping
@@ -389,6 +436,7 @@ public class AdminController {
         target.setName(source.getName());
         target.setType(source.getType());
         target.setAddress(source.getAddress());
+        target.setPhone(source.getPhone());
         target.setLatitude(source.getLatitude());
         target.setLongitude(source.getLongitude());
         target.setDescription(source.getDescription());

@@ -57,6 +57,42 @@
   flex-direction: column;
 }
 
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 28rpx;
+  padding: 14rpx;
+  border: 1rpx solid rgba(20, 20, 20, 0.10);
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 14rpx 40rpx rgba(20, 20, 20, 0.045);
+}
+
+.feature-button {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  border: 0;
+  border-radius: 20rpx;
+  color: #5f584f;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.feature-button.active {
+  background: #edf7f2;
+  color: #178f5d;
+}
+
+.feature-icon {
+  font-size: 40rpx;
+  line-height: 1;
+}
+
 .section-head {
   display: flex;
   align-items: baseline;

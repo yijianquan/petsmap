@@ -32,17 +32,20 @@ Page({
   },
 
   async loadUploadedPlaces() {
-    const user = this.data.user || {};
     try {
-      const places = await request({ url: "/miniapp/api/places" });
-      const uploadedPlaces = asList(places).filter((place) => place.uploadedBy === user.username);
-      this.setData({ uploadedPlaces });
+      const places = await request({ url: "/miniapp/api/places/mine" });
+      this.setData({ uploadedPlaces: asList(places) });
     } catch (error) {
       this.setData({ uploadedPlaces: [] });
       if (!isLoggedIn()) {
         this.setData({ user: {}, userAvatarSrc: "", loggedIn: false });
       }
     }
+  },
+
+  openFeature(event) {
+    const page = event.currentTarget.dataset.page;
+    wx.navigateTo({ url: `/pages/${page}/${page}` });
   },
 
   goLogin() {

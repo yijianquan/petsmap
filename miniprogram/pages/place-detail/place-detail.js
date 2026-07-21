@@ -2,7 +2,7 @@ const { request, upload, ensureLogin, baseUrl } = require("../../utils/request")
 
 const typeColors = {
   RESTAURANT: "#F28C28",
-  MALL: "#111111",
+  MALL: "#EC4899",
   HOTEL: "#2F80ED",
   PARK: "#178F5D",
   SCENIC: "#178F5D",
@@ -13,7 +13,7 @@ const typeColors = {
 
 const typeSoftColors = {
   RESTAURANT: "#FFF2E3",
-  MALL: "#F1F1F1",
+  MALL: "#FCE7F3",
   HOTEL: "#EAF3FF",
   PARK: "#EAF7F0",
   SCENIC: "#EAF7F0",
@@ -28,6 +28,7 @@ Page({
     baseUrl: "",
     place: {},
     comments: [],
+    favoriteBusy: false,
     showComment: false,
     ratingOptions: [
       { value: 5, label: "5星" },
@@ -53,6 +54,75 @@ Page({
     const comments = await request({ url: `/miniapp/api/places/${this.data.id}/comments` });
     const place = decoratePlace(rawPlace || {});
     this.setData({ place, comments: comments || [] });
+  },
+
+  async toggleFavorite() {
+    if (!ensureLogin() || this.data.favoriteBusy) return;
+    const favorited = Boolean(this.data.place.favorited);
+    this.setData({ favoriteBusy: true });
+    try {
+      await request({
+        url: `/miniapp/api/places/${this.data.id}/favorite`,
+        method: favorited ? "DELETE" : "POST"
+      });
+      this.setData({ "place.favorited": !favorited });
+      wx.showToast({ title: favorited ? "已取消收藏" : "收藏成功", icon: "success" });
+    } finally {
+      this.setData({ favoriteBusy: false });
+    }
+  },
+
+  showOnMap() {
+    const place = this.data.place;
+    if (place.latitude == null || place.longitude == null) {
+      wx.showToast({ title: "该地点缺少定位", icon: "none" });
+      return;
+    }
+    const city = place.cityName || wx.getStorageSync("selectedCity") || "上海市";
+    wx.removeStorageSync("selectedPlaceKeyword");
+    wx.setStorageSync("selectedCity", city);
+    wx.setStorageSync("selectedCityLocation", {
+      name: city,
+      latitude: place.latitude,
+      longitude: place.longitude
+    });
+    wx.setStorageSync("selectedDestination", {
+      id: place.id,
+      name: place.name,
+      address: place.address,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      cityName: city
+    });
+    wx.switchTab({ url: "/pages/map/map" });
+  },
+
+  navigateToPlace() {
+    const place = this.data.place;
+    if (place.latitude == null || place.longitude == null) {
+      wx.showToast({ title: "该地点缺少导航坐标", icon: "none" });
+      return;
+    }
+    wx.openLocation({
+      latitude: Number(place.latitude),
+      longitude: Number(place.longitude),
+      name: place.name || "目的地",
+      address: place.address || "",
+      scale: 16
+    });
+  },
+
+  openPlaceGroups() {
+    if (!ensureLogin()) return;
+    const place = this.data.place;
+    wx.navigateTo({ url: `/pages/place-groups/place-groups?placeId=${place.id}&placeName=${encodeURIComponent(place.name || "")}` });
+  },
+
+  callPlace() {
+    const rawPhone = String(this.data.place.phone || "");
+    const phoneNumber = rawPhone.split(/\s*\/\s*|[;,，]/)[0].trim();
+    if (!phoneNumber) return;
+    wx.makePhoneCall({ phoneNumber });
   },
 
   openComment() {
