@@ -11,6 +11,7 @@
     "pages/walk-members/walk-members",
     "pages/my-uploads/my-uploads",
     "pages/my-favorites/my-favorites",
+    "pages/my-pets/my-pets",
     "pages/login/login",
     "pages/mine/mine"
   ],

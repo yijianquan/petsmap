@@ -7,6 +7,8 @@ Page({
     loggedIn: false,
     baseUrl: "",
     uploadedPlaces: [],
+    petSummary: {},
+    petSummaryText: "",
     showProfileEditor: false,
     profileAvatarSrc: "",
     profileForm: {
@@ -26,9 +28,21 @@ Page({
     });
     if (loggedIn) {
       this.loadUploadedPlaces();
+      this.loadPetSummary();
     } else {
       this.setData({ uploadedPlaces: [] });
     }
+  },
+
+  async loadPetSummary() {
+    try {
+      const summary = await request({ url: "/miniapp/api/pets/summary" });
+      const parts = [];
+      if (summary.cat) parts.push(`猫咪 ${summary.cat}`);
+      if (summary.dog) parts.push(`狗狗 ${summary.dog}`);
+      if (summary.other) parts.push(`异宠 ${summary.other}`);
+      this.setData({ petSummary: summary, petSummaryText: parts.join(" · ") });
+    } catch (error) { this.setData({ petSummary: {}, petSummaryText: "" }); }
   },
 
   async loadUploadedPlaces() {

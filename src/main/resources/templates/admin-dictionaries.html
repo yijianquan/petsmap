@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>宠趣行 - 字典管理</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-body">
+<header class="admin-topbar">
+  <a class="admin-brand" th:href="@{/admin}">宠趣行后台</a>
+  <nav class="admin-nav">
+    <a th:href="@{/admin}">总览</a><a th:href="@{/admin/places}">地点管理</a><a th:href="@{/admin/walk-groups}">群聊管理</a><a class="active" th:href="@{/admin/dictionaries}">字典管理</a><a th:href="@{/admin/areas}">城市管理</a><a th:href="@{/admin/users}">微信用户</a>
+  </nav>
+  <form th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="admin-logout">退出</button></form>
+</header>
+<main class="admin-page">
+  <section class="admin-card">
+    <form class="admin-toolbar" method="get">
+      <label class="compact-filter">字典类型<select name="type" onchange="this.form.submit()"><option value="PET_BREED" th:selected="${type=='PET_BREED'}">宠物品种</option><option value="PET_GENDER" th:selected="${type=='PET_GENDER'}">宠物性别</option></select></label>
+    </form>
+    <form class="admin-toolbar" th:action="@{/admin/dictionaries}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <input type="hidden" name="dictType" th:value="${type}">
+      <label class="compact-filter">编码<input name="itemCode" required placeholder="唯一编码"></label>
+      <label class="compact-filter">名称<input name="label" required placeholder="显示名称"></label>
+      <label class="compact-filter" th:if="${type=='PET_BREED'}">所属宠物<select name="parentCode" required><option value="">请选择</option><option value="CAT">猫咪</option><option value="DOG">狗狗</option><option value="OTHER">异宠</option></select></label>
+      <label class="compact-filter">排序<input name="sortOrder" type="number" value="0"></label>
+      <button class="admin-primary">新增</button>
+    </form>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>编码</th><th>名称</th><th th:if="${type=='PET_BREED'}">所属宠物</th><th>排序</th><th>状态</th><th>编辑</th></tr></thead>
+        <tbody>
+          <tr th:each="item:${items}">
+            <form th:action="@{/admin/dictionaries}" method="post">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="id" th:value="${item.id}">
+              <td><input name="itemCode" th:value="${item.itemCode}"><input type="hidden" name="dictType" th:value="${item.dictType}"></td>
+              <td><input name="label" th:value="${item.label}"></td>
+              <td th:if="${type=='PET_BREED'}"><select name="parentCode" required><option value="">请选择</option><option value="CAT" th:selected="${item.parentCode=='CAT'}">猫咪</option><option value="DOG" th:selected="${item.parentCode=='DOG'}">狗狗</option><option value="OTHER" th:selected="${item.parentCode=='OTHER'}">异宠</option></select></td>
+              <td><input name="sortOrder" type="number" th:value="${item.sortOrder}" style="width:70px"></td>
+              <td th:text="${item.enabled?'启用':'停用'}">启用</td>
+              <td><input type="hidden" name="enabled" th:value="${item.enabled}"><button class="admin-primary">保存</button>
+            </form>
+            <form th:action="@{/admin/dictionaries/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="admin-danger" th:text="${item.enabled?'停用':'启用'}">停用</button></form></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

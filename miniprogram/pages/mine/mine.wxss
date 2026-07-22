@@ -30,8 +30,9 @@
 }
 
 .default-avatar {
-  background: #178f5d;
-  color: #ffffff;
+  background: #f2fbf6;
+  color: #178f5d;
+  border: 0;
   text-align: center;
   line-height: 112rpx;
   font-size: 42rpx;
@@ -50,6 +51,7 @@
   font-size: 36rpx;
   font-weight: 800;
 }
+.pet-summary{display:block;color:#178f5d;font-size:23rpx;font-weight:700}
 
 .account-section {
   flex: 1;
@@ -62,7 +64,7 @@
   grid-template-columns: repeat(4, 1fr);
   margin-top: 28rpx;
   padding: 14rpx;
-  border: 1rpx solid rgba(20, 20, 20, 0.10);
+  border: 0;
   border-radius: 28rpx;
   background: #ffffff;
   box-shadow: 0 14rpx 40rpx rgba(20, 20, 20, 0.045);
@@ -249,8 +251,9 @@
   height: 82rpx;
   margin-top: 28rpx;
   border-radius: 999rpx;
-  background: #178f5d;
-  color: #ffffff;
+  background: #f2fbf6;
+  color: #178f5d;
+  border: 0;
   font-size: 28rpx;
   font-weight: 800;
   box-shadow: 0 14rpx 32rpx rgba(23, 143, 93, 0.18);

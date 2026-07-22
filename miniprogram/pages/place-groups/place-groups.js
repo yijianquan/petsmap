@@ -5,15 +5,10 @@ Page({
   onLoad(options) { this.setData({ placeId: Number(options.placeId), placeName: decode(options.placeName) }); },
   onShow() { this.load(); },
   async load() { this.setData({ groups: asList(await request({ url: `/miniapp/api/places/${this.data.placeId}/walk-groups` })) }); },
-  async handleGroup(event) {
-    if (!ensureLogin()) return;
+  handleGroup(event) {
     const index = Number(event.currentTarget.dataset.index);
-    let group = this.data.groups[index];
+    const group = this.data.groups[index];
     if (!group) return;
-    if (!group.joined) {
-      group = await request({ url: `/miniapp/api/walk-groups/${group.id}/join`, method: "POST" });
-      this.setData({ [`groups[${index}]`]: group });
-    }
     this.openChat(group);
   },
   openCreate() { if (ensureLogin()) this.setData({ showCreate: true, groupName: "" }); },

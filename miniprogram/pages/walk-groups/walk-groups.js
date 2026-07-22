@@ -1,4 +1,4 @@
-const { request, asList, ensureLogin } = require("../../utils/request");
+const { request, asList } = require("../../utils/request");
 
 Page({
   data: { city: "上海市", cityCode: "", keyword: "", groups: [], loading: true, userLatitude: null, userLongitude: null },
@@ -20,15 +20,10 @@ Page({
       this.setData({ groups });
     } finally { this.setData({ loading: false }); }
   },
-  async handleGroup(event) {
-    if (!ensureLogin()) return;
+  handleGroup(event) {
     const index = Number(event.currentTarget.dataset.index);
-    let group = this.data.groups[index];
+    const group = this.data.groups[index];
     if (!group) return;
-    if (!group.joined) {
-      group = { ...(await request({ url: `/miniapp/api/walk-groups/${group.id}/join`, method: "POST" })), distanceText: group.distanceText };
-      this.setData({ [`groups[${index}]`]: group });
-    }
     wx.navigateTo({ url: `/pages/walk-chat/walk-chat?id=${group.id}&name=${encodeURIComponent(group.name)}&distance=${encodeURIComponent(group.distanceText || '')}` });
   },
   refreshLocation() {

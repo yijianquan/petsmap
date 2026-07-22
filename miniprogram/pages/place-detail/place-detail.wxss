@@ -153,8 +153,9 @@
   height: 54rpx;
   padding: 0 24rpx;
   border-radius: 999rpx;
-  background: #178f5d;
-  color: #ffffff;
+  background: #f2fbf6;
+  color: #178f5d;
+  border: 0;
   font-size: 23rpx;
   font-weight: 800;
   line-height: 54rpx;
@@ -232,7 +233,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 22rpx;
-  border-color: rgba(23, 143, 93, 0.18);
+  border: 0;
   background: #f2fbf6;
   color: #15784f;
   font-weight: 800;
@@ -242,8 +243,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #178f5d;
-  box-shadow: 0 14rpx 32rpx rgba(23, 143, 93, 0.18);
+  background: #f2fbf6;
+  color: #178f5d;
+  border: 0;
+  box-shadow: 0 10rpx 24rpx rgba(23, 143, 93, 0.10);
 }
 
 .navigate-icon-btn,
@@ -266,7 +269,8 @@
 
 .group-entry-btn {
   flex: 1;
-  color: #ffffff;
+  color: #178f5d;
+  border: 0;
   font-size: 29rpx;
 }
 

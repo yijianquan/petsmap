@@ -39,7 +39,7 @@ page {
 
 .card {
   background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(20, 20, 20, 0.08);
+  border: 0;
   border-radius: 22rpx;
   padding: 26rpx;
   box-shadow: 0 18rpx 50rpx rgba(20, 20, 20, 0.06);
@@ -68,14 +68,16 @@ page {
 }
 
 .primary-btn {
-  background: #111111;
-  color: #ffffff;
+  background: #ffffff;
+  color: #178f5d;
+  border: 0;
+  box-shadow: 0 10rpx 26rpx rgba(23, 143, 93, 0.10);
 }
 
 .ghost-btn {
   background: #ffffff;
   color: #111111;
-  border: 1rpx solid rgba(20, 20, 20, 0.12);
+  border: 0;
 }
 
 .danger-btn {
@@ -91,7 +93,7 @@ page {
   padding: 0 24rpx;
   border-radius: 18rpx;
   background: #f8f6f2;
-  border: 1rpx solid rgba(20, 20, 20, 0.08);
+  border: 0;
   box-sizing: border-box;
   font-size: 28rpx;
 }
@@ -125,8 +127,9 @@ page {
 }
 
 .pill.active {
-  background: #111111;
-  color: #ffffff;
+  background: #edf7f2;
+  color: #178f5d;
+  box-shadow: inset 0 0 0 1rpx rgba(23, 143, 93, 0.24);
 }
 
 .empty {
@@ -142,9 +145,10 @@ page {
   width: 112rpx;
   height: 112rpx;
   border-radius: 50%;
-  background: #111111;
-  color: #ffffff;
+  background: #ffffff;
+  color: #178f5d;
   font-size: 56rpx;
   line-height: 112rpx;
-  box-shadow: 0 20rpx 46rpx rgba(0, 0, 0, 0.22);
+  border: 0;
+  box-shadow: 0 20rpx 46rpx rgba(23, 143, 93, 0.16);
 }

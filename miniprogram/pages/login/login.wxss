@@ -22,8 +22,9 @@
   height: 116rpx;
   margin: 0 auto 28rpx;
   border-radius: 34rpx;
-  background: #178f5d;
-  color: #ffffff;
+  background: #f2fbf6;
+  color: #178f5d;
+  border: 0;
   font-size: 44rpx;
   font-weight: 800;
   line-height: 116rpx;
@@ -52,8 +53,9 @@
   height: 88rpx;
   margin: 0;
   border-radius: 999rpx;
-  background: #178f5d;
-  color: #ffffff;
+  background: #ffffff;
+  color: #178f5d;
+  border: 0;
   font-size: 30rpx;
   font-weight: 800;
   line-height: 88rpx;

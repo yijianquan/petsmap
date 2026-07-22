@@ -22,10 +22,13 @@ public class WalkGroupController {
     private final SysAreaRepository areaRepository;
     private final MiniAppTokenService tokenService;
     private final MapSearchService mapSearchService;
+    private final UserPetRepository userPetRepository;
+    private final DictionaryItemRepository dictionaryItemRepository;
 
     public WalkGroupController(WalkGroupRepository groupRepository, WalkGroupMemberRepository memberRepository,
             WalkGroupMessageRepository messageRepository, PetFriendlyPlaceRepository placeRepository,
-            SysAreaRepository areaRepository, MiniAppTokenService tokenService, MapSearchService mapSearchService) {
+            SysAreaRepository areaRepository, MiniAppTokenService tokenService, MapSearchService mapSearchService,
+            UserPetRepository userPetRepository, DictionaryItemRepository dictionaryItemRepository) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.messageRepository = messageRepository;
@@ -33,6 +36,8 @@ public class WalkGroupController {
         this.areaRepository = areaRepository;
         this.tokenService = tokenService;
         this.mapSearchService = mapSearchService;
+        this.userPetRepository = userPetRepository;
+        this.dictionaryItemRepository = dictionaryItemRepository;
     }
 
     @GetMapping("/walk-groups")
@@ -140,14 +145,15 @@ public class WalkGroupController {
 
     @GetMapping("/walk-groups/{id}/members")
     public List<Map<String, Object>> members(@RequestHeader(value = "X-Miniapp-Token", required = false) String token, @PathVariable Long id) {
-        UserAccount user = tokenService.requireUser(token); requireMember(id, user); WalkGroup group = requireGroup(id);
+        WalkGroup group = requireGroup(id);
         return memberRepository.findByGroupIdOrderByJoinedAtAsc(id).stream().map(member -> memberDto(member, group)).toList();
     }
 
     @GetMapping("/walk-groups/{id}/messages")
     public List<Map<String, Object>> messages(@RequestHeader(value = "X-Miniapp-Token", required = false) String token,
             @PathVariable Long id, @RequestParam(defaultValue = "0") Long afterId) {
-        UserAccount user = tokenService.requireUser(token); requireMember(id, user);
+        requireGroup(id);
+        UserAccount user = tokenService.optionalUser(token).orElse(null);
         List<WalkGroupMessage> messages = afterId > 0
                 ? messageRepository.findByGroupIdAndIdGreaterThanOrderByIdAsc(id, afterId, PageRequest.of(0, 100))
                 : new ArrayList<>(messageRepository.findByGroupIdOrderByIdDesc(id, PageRequest.of(0, 100)));
@@ -186,8 +192,10 @@ public class WalkGroupController {
         dto.put("owner", user != null && Objects.equals(group.getOwner().getId(), user.getId()));
         return dto;
     }
-    private Map<String, Object> memberDto(WalkGroupMember member, WalkGroup group) { UserAccount user = member.getUser(); return Map.of("id", user.getId(), "nickname", displayName(user), "avatarUrl", avatarUrl(user), "owner", Objects.equals(group.getOwner().getId(), user.getId())); }
-    private Map<String, Object> messageDto(WalkGroupMessage message, UserAccount viewer) { UserAccount sender = message.getSender(); Map<String,Object> dto = new LinkedHashMap<>(); dto.put("id", message.getId()); dto.put("content", message.getContent()); dto.put("createdAt", message.getCreatedAt().format(TIME_FORMAT)); dto.put("senderId", sender.getId()); dto.put("senderName", displayName(sender)); dto.put("avatarUrl", avatarUrl(sender)); dto.put("mine", Objects.equals(sender.getId(), viewer.getId())); return dto; }
+    private Map<String, Object> memberDto(WalkGroupMember member, WalkGroup group) { UserAccount user = member.getUser(); Map<String,Object> dto=new LinkedHashMap<>();dto.put("id",user.getId());dto.put("nickname",displayName(user));dto.put("avatarUrl",avatarUrl(user));dto.put("owner",Objects.equals(group.getOwner().getId(),user.getId()));dto.put("pets",userPetRepository.findByOwnerIdOrderByIdDesc(user.getId()).stream().map(this::petDto).toList());return dto; }
+    private Map<String,Object> petDto(UserPet pet){Map<String,Object> dto=new LinkedHashMap<>();dto.put("id",pet.getId());dto.put("name",pet.getName());dto.put("species",pet.getSpecies());dto.put("breedName",dictLabel("PET_BREED",pet.getBreedCode()));dto.put("genderName",dictLabel("PET_GENDER",pet.getGenderCode()));dto.put("avatarUrl",pet.hasAvatarData()?"/miniapp/api/pets/"+pet.getId()+"/avatar":"");return dto;}
+    private String dictLabel(String type,String code){return dictionaryItemRepository.findByDictTypeAndItemCode(type,code).map(DictionaryItem::getLabel).orElse(code);}
+    private Map<String, Object> messageDto(WalkGroupMessage message, UserAccount viewer) { UserAccount sender = message.getSender(); Map<String,Object> dto = new LinkedHashMap<>(); dto.put("id", message.getId()); dto.put("content", message.getContent()); dto.put("createdAt", message.getCreatedAt().format(TIME_FORMAT)); dto.put("senderId", sender.getId()); dto.put("senderName", displayName(sender)); dto.put("avatarUrl", avatarUrl(sender)); dto.put("mine", viewer != null && Objects.equals(sender.getId(), viewer.getId())); return dto; }
     private String avatarUrl(UserAccount user) { return user.hasAvatarData() ? "/miniapp/api/users/" + user.getId() + "/avatar" : clean(user.getAvatarUrl()); }
     private String displayName(UserAccount user) { return clean(user.getNickname()).isBlank() ? user.getUsername() : user.getNickname(); }
     private String clean(String value) { return value == null ? "" : value.trim(); }

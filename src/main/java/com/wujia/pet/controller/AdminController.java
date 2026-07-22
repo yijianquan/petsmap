@@ -14,6 +14,8 @@ import com.wujia.pet.repository.WalkGroupRepository;
 import com.wujia.pet.repository.WalkGroupMemberRepository;
 import com.wujia.pet.repository.WalkGroupMessageRepository;
 import com.wujia.pet.entity.WalkGroup;
+import com.wujia.pet.entity.DictionaryItem;
+import com.wujia.pet.repository.DictionaryItemRepository;
 import com.wujia.pet.service.PlaceCrawlService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -54,6 +56,7 @@ public class AdminController {
     private final WalkGroupRepository walkGroupRepository;
     private final WalkGroupMemberRepository walkGroupMemberRepository;
     private final WalkGroupMessageRepository walkGroupMessageRepository;
+    private final DictionaryItemRepository dictionaryItemRepository;
 
     public AdminController(
             PetFriendlyPlaceRepository placeRepository,
@@ -63,7 +66,8 @@ public class AdminController {
             PlaceCrawlService placeCrawlService,
             WalkGroupRepository walkGroupRepository,
             WalkGroupMemberRepository walkGroupMemberRepository,
-            WalkGroupMessageRepository walkGroupMessageRepository) {
+            WalkGroupMessageRepository walkGroupMessageRepository,
+            DictionaryItemRepository dictionaryItemRepository) {
         this.placeRepository = placeRepository;
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
@@ -72,7 +76,28 @@ public class AdminController {
         this.walkGroupRepository = walkGroupRepository;
         this.walkGroupMemberRepository = walkGroupMemberRepository;
         this.walkGroupMessageRepository = walkGroupMessageRepository;
+        this.dictionaryItemRepository = dictionaryItemRepository;
     }
+
+    @GetMapping("/dictionaries")
+    public String dictionaries(@RequestParam(defaultValue="PET_BREED") String type, Model model) {
+        model.addAttribute("items", dictionaryItemRepository.findByDictTypeOrderBySortOrderAscIdAsc(type));
+        model.addAttribute("type", type); model.addAttribute("activeNav", "dictionaries"); return "admin-dictionaries";
+    }
+
+    @PostMapping("/dictionaries")
+    public String saveDictionary(@RequestParam(required=false) Long id,@RequestParam String dictType,@RequestParam String itemCode,@RequestParam String label,@RequestParam(defaultValue="") String parentCode,@RequestParam(defaultValue="0") Integer sortOrder,@RequestParam(defaultValue="true") Boolean enabled) {
+        DictionaryItem item=id==null?new DictionaryItem():dictionaryItemRepository.findById(id).orElseThrow(()->new IllegalArgumentException("字典项不存在。"));
+        String normalizedType=dictType.trim();
+        String normalizedParent=parentCode.trim();
+        if ("PET_BREED".equals(normalizedType) && !java.util.Set.of("CAT","DOG","OTHER").contains(normalizedParent)) {
+            throw new IllegalArgumentException("宠物品种必须选择所属宠物。");
+        }
+        item.setDictType(normalizedType);item.setItemCode(itemCode.trim());item.setLabel(label.trim());item.setParentCode("PET_BREED".equals(normalizedType)?normalizedParent:null);item.setSortOrder(sortOrder);item.setEnabled(enabled);dictionaryItemRepository.save(item);return "redirect:/admin/dictionaries?type="+dictType;
+    }
+
+    @PostMapping("/dictionaries/{id}/toggle")
+    public String toggleDictionary(@PathVariable Long id) { DictionaryItem item=dictionaryItemRepository.findById(id).orElseThrow(()->new IllegalArgumentException("字典项不存在。"));item.setEnabled(!Boolean.TRUE.equals(item.getEnabled()));dictionaryItemRepository.save(item);return "redirect:/admin/dictionaries?type="+item.getDictType(); }
 
     @GetMapping("/walk-groups")
     public String walkGroups(

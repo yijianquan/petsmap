@@ -1,13 +1,12 @@
 <view class="chat-page">
   <view class="chat-head">
     <view bindtap="openMembers">
-      <text class="chat-name">{{name}}<text wx:if="{{distanceText}}" style="color:#178f5d;font-size:24rpx;"> · {{distanceText}}</text></text>
-      <text class="chat-meta">{{group.memberCount || 0}} 人 · {{group.placeName}}</text>
+      <view class="chat-place-row"><text class="chat-meta">{{group.placeName}}</text><text wx:if="{{distanceText}}" class="chat-distance">{{distanceText}}</text></view>
     </view>
     <view class="head-actions">
-      <view class="members-btn" bindtap="openMembers">成员</view>
+      <view class="members-btn" bindtap="openMembers">群信息</view>
       <view wx:if="{{group.owner}}" class="manage-btn" bindtap="openManage">管理</view>
-      <view wx:else class="manage-btn" bindtap="leave">退出</view>
+      <view wx:elif="{{!group.joined}}" class="join-chat-btn" bindtap="join">加入</view>
     </view>
   </view>
   <scroll-view scroll-y class="message-list" scroll-into-view="{{scrollIntoView}}">
@@ -17,7 +16,7 @@
     </view>
     <view class="message-bottom"></view>
   </scroll-view>
-  <view class="composer"><input value="{{content}}" maxlength="500" placeholder="说点什么..." bindinput="onContent" confirm-type="send" bindconfirm="send" /><view class="send-btn" bindtap="send">发送</view></view>
+  <view class="composer"><input value="{{content}}" disabled="{{!group.joined}}" maxlength="500" placeholder="{{group.joined ? '说点什么...' : '加入群聊后可以发消息'}}" bindinput="onContent" confirm-type="send" bindconfirm="send" /><view class="send-btn {{!group.joined ? 'disabled' : ''}}" bindtap="send">发送</view></view>
   <view wx:if="{{showManage}}" class="sheet-mask" bindtap="closeManage">
     <view class="sheet" catchtap="noop">
       <text class="sheet-title">群聊管理</text>
@@ -31,7 +30,7 @@
       <image class="profile-avatar" src="{{selectedMember.avatarSrc}}" mode="aspectFill"/>
       <text class="profile-name">{{selectedMember.nickname}}</text>
       <text wx:if="{{selectedMember.owner}}" class="owner-tag">群主</text>
-      <text class="profile-tip">更多宠物资料将在后续版本开放</text>
+      <view wx:if="{{selectedMember.pets.length}}" class="profile-pets"><view wx:for="{{selectedMember.pets}}" wx:key="id" class="profile-pet"><image wx:if="{{item.avatarSrc}}" class="pet-avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><view wx:else class="pet-avatar pet-fallback">宠</view><view class="pet-data"><text class="pet-name">{{item.name}}</text><text class="pet-detail">{{item.genderName}} · {{item.breedName}}</text></view></view></view><text wx:else class="profile-tip">暂未添加宠物</text>
     </view>
   </view>
 </view>

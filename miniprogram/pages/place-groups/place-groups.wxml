@@ -1,8 +1,7 @@
 <view class="page groups-page">
   <view class="place-head"><text class="head-label">地点</text><text class="head-name">{{placeName}}</text></view>
-  <view wx:for="{{groups}}" wx:key="id" class="group-row">
+  <view wx:for="{{groups}}" wx:key="id" class="group-row" data-index="{{index}}" bindtap="handleGroup">
     <view class="group-main"><text class="group-name">{{item.name}}</text><text class="group-meta">{{item.memberCount}} 人 · 群主 {{item.ownerName}}</text></view>
-    <view class="join-btn {{item.joined ? 'joined' : ''}}" data-index="{{index}}" bindtap="handleGroup">{{item.joined ? '进入' : '加入'}}</view>
   </view>
   <view wx:if="{{groups.length === 0}}" class="empty">暂无群聊</view>
   <view class="create-bar"><view class="create-btn" bindtap="openCreate">创建群聊</view></view>

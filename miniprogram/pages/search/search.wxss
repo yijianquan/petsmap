@@ -58,8 +58,9 @@
 }
 
 .mode-tab.active {
-  background: #111111;
-  color: #ffffff;
+  background: #ffffff;
+  color: #178f5d;
+  box-shadow: 0 4rpx 14rpx rgba(23, 143, 93, 0.10);
 }
 
 .result-card {

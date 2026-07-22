@@ -23,6 +23,12 @@ Page({
       wx.setStorageSync("user", data.user);
       getApp().globalData.token = data.token;
       wx.showToast({ title: "已登录", icon: "success" });
+      const pendingInvitePath = wx.getStorageSync("pendingInvitePath");
+      if (pendingInvitePath) {
+        wx.removeStorageSync("pendingInvitePath");
+        wx.reLaunch({ url: pendingInvitePath });
+        return;
+      }
       const redirectTab = wx.getStorageSync("loginRedirectTab") || "/pages/map/map";
       wx.removeStorageSync("loginRedirectTab");
       wx.switchTab({ url: redirectTab });

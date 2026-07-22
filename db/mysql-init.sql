@@ -98,6 +98,35 @@ CREATE TABLE IF NOT EXISTS walk_group_message (
     CONSTRAINT fk_walk_message_sender FOREIGN KEY (sender_id) REFERENCES user_account(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS dictionary_item (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    dict_type VARCHAR(40) NOT NULL,
+    item_code VARCHAR(40) NOT NULL,
+    label VARCHAR(80) NOT NULL,
+    parent_code VARCHAR(40) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    enabled BIT(1) NOT NULL DEFAULT b'1',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_dictionary_type_code (dict_type, item_code),
+    KEY idx_dictionary_type_parent (dict_type, parent_code, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_pet (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    owner_id BIGINT NOT NULL,
+    species VARCHAR(20) NOT NULL,
+    name VARCHAR(64) NOT NULL,
+    breed_code VARCHAR(40) NOT NULL,
+    gender_code VARCHAR(20) NOT NULL,
+    neutered BIT(1) NOT NULL DEFAULT b'0',
+    birth_date DATE NULL,
+    avatar_data LONGBLOB NULL,
+    avatar_content_type VARCHAR(64) NULL,
+    PRIMARY KEY (id),
+    KEY idx_user_pet_owner (owner_id),
+    CONSTRAINT fk_user_pet_owner FOREIGN KEY (owner_id) REFERENCES user_account(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO user_account (username, password, role, nickname)
 SELECT 'admin', '$2a$10$wOO7/BKNhz3NJIOCK3bSSOY8E2aT/xrNZafL6gTURKlQ/NJNR55DO', 'ROLE_ADMIN', 'admin'
 WHERE NOT EXISTS (

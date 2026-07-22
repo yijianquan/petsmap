@@ -31,7 +31,7 @@
   <view class="card info-card">
     <view class="row between">
       <text class="section-title">评论</text>
-      <view class="small-btn" style="background: {{place.typeColor}}; box-shadow: 0 12rpx 28rpx {{place.typeSoftColor}};" bindtap="openComment">写评论</view>
+      <view class="small-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="openComment">写评论</view>
     </view>
     <scroll-view wx:if="{{comments.length > 0}}" scroll-y class="comment-scroll">
       <view wx:for="{{comments}}" wx:key="id" class="comment-item">
@@ -49,7 +49,7 @@
 
   <view class="navigate-bar">
     <view class="navigate-icon-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="navigateToPlace" aria-label="导航"><text class="navigate-arrow">↗</text><text>导航</text></view>
-    <view class="group-entry-btn" style="background: {{place.typeColor}}; box-shadow: 0 14rpx 32rpx {{place.typeSoftColor}};" bindtap="openPlaceGroups">创建/加入群聊</view>
+    <view class="group-entry-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="openPlaceGroups">创建/加入群聊</view>
   </view>
 
   <view wx:if="{{showComment}}" class="sheet-mask" bindtap="closeComment">
@@ -64,7 +64,7 @@
           <text wx:for="{{ratingOptions}}"
                 wx:key="value"
                 class="pill {{commentForm.rating === item.value ? 'active' : ''}}"
-                style="{{commentForm.rating === item.value ? 'background: ' + place.typeColor + '; border-color: ' + place.typeColor + '; color: #ffffff;' : ''}}"
+                style="{{commentForm.rating === item.value ? 'background: ' + place.typeSoftColor + '; color: ' + place.typeColor + ';' : ''}}"
                 data-rating="{{item.value}}"
                 bindtap="selectRating">{{item.label}}</text>
         </view>
@@ -73,8 +73,8 @@
         <text class="field-label">评论</text>
         <textarea class="textarea" value="{{commentForm.content}}" placeholder="分享带宠体验、停车、是否可进店..." bindinput="onCommentContent" />
       </view>
-      <view class="ghost-btn detail-upload-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}}; border-color: {{place.typeSoftColor}};" bindtap="chooseCommentImage">{{commentForm.imagePath ? '已选择图片，点击更换' : '上传图片'}}</view>
-      <view class="primary-btn save-btn" style="background: {{place.typeColor}}; box-shadow: 0 14rpx 32rpx {{place.typeSoftColor}};" bindtap="submitComment">提交评论</view>
+      <view class="ghost-btn detail-upload-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="chooseCommentImage">{{commentForm.imagePath ? '已选择图片，点击更换' : '上传图片'}}</view>
+      <view class="primary-btn save-btn" style="color: {{place.typeColor}}; background: {{place.typeSoftColor}};" bindtap="submitComment">提交评论</view>
     </view>
   </view>
 </view>

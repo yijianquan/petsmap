@@ -3,12 +3,11 @@
     <view class="city-pill" bindtap="openCity">{{city}}</view>
     <view class="search-shell"><input value="{{keyword}}" placeholder="搜索当前城市的群聊" bindinput="onSearch" confirm-type="search" bindconfirm="search" /><view class="search-btn" bindtap="search">搜索</view></view>
   </view>
-  <view wx:for="{{groups}}" wx:key="id" class="group-card">
+  <view wx:for="{{groups}}" wx:key="id" class="group-card" data-index="{{index}}" bindtap="handleGroup">
     <view class="group-main">
-      <view style="display:flex;align-items:center;gap:14rpx;"><text class="group-name">{{item.name}}</text><text wx:if="{{item.distanceText}}" style="color:#178f5d;font-size:22rpx;font-weight:800;">{{item.distanceText}}</text></view>
-      <text class="place-name">{{item.placeName}}</text><text class="member-count">{{item.memberCount}} 人 · 群主 {{item.ownerName}}</text>
+      <view class="group-title-row"><text class="group-name">{{item.name}}</text><text class="member-count">{{item.memberCount}} 人</text></view>
+      <view class="group-place-row"><text class="place-name">{{item.placeName}}</text><text wx:if="{{item.distanceText}}" class="group-distance">{{item.distanceText}}</text></view>
     </view>
-    <view class="join-btn {{item.joined ? 'joined' : ''}}" data-index="{{index}}" bindtap="handleGroup">{{item.joined ? '进入' : '加入'}}</view>
   </view>
   <view wx:if="{{!loading && groups.length === 0}}" class="empty"><text>当前城市暂无群聊。</text></view>
 </view>
