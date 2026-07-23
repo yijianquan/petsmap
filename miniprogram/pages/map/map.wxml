@@ -45,7 +45,7 @@
         <view wx:for="{{typeFilters}}"
               wx:key="value"
               class="filter-pill {{item.active ? 'active' : ''}}"
-              style="color: {{item.color}}; background: {{item.softColor}};"
+              style="color: {{item.active ? '#ffffff' : item.color}}; background: {{item.active ? item.color : '#ffffff'}}; border-color: {{item.active ? item.color : '#dadce0'}};"
               data-type="{{item.value}}"
               bindtap="selectType">{{item.label}}</view>
       </scroll-view>

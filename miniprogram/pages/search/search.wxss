@@ -2,7 +2,7 @@
   min-height: 100vh;
   padding: 24rpx;
   box-sizing: border-box;
-  background: #f5f1ea;
+  background: #ffffff;
 }
 
 .search-top {
@@ -19,6 +19,8 @@
   padding: 0 22rpx;
   border-radius: 24rpx;
   background: #ffffff;
+  border: 1rpx solid #dadce0;
+  box-shadow: 0 2rpx 8rpx rgba(60, 64, 67, 0.08);
   box-sizing: border-box;
 }
 

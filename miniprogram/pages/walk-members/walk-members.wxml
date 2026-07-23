@@ -1,11 +1,13 @@
-<view class="page">
-  <view class="member-head"><text class="title">群成员</text><text class="count">{{members.length}} 位成员</text></view>
+<view class="page" bindtap="closeInviteMenu">
+  <view class="member-head"><view><text class="title">群成员</text><text class="count">{{members.length}} 位成员</text></view><view wx:if="{{group.joined}}" class="invite-plus" catchtap="toggleInviteMenu">＋</view></view>
+  <view wx:if="{{group.joined && showInviteMenu}}" class="invite-menu" catchtap="noop">
+    <button class="invite-option" open-type="share">邀请朋友</button>
+    <view class="invite-option" bindtap="openFaceInvite">面对面邀请</view>
+  </view>
   <view class="member-list">
-    <view wx:for="{{members}}" wx:key="id" class="member-row" data-index="{{index}}" bindtap="showMember"><image class="avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><text class="nickname">{{item.nickname}}</text><text wx:if="{{item.owner}}" class="owner-tag">群主</text></view>
+    <view wx:for="{{members}}" wx:key="id" class="member-row" data-index="{{index}}" bindtap="showMember"><image class="avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><text class="nickname">{{item.nickname}}</text><text wx:if="{{item.owner}}" class="owner-tag">群主</text><text wx:elif="{{item.role==='ADMIN'}}" class="admin-tag">管理员</text><text wx:if="{{group.owner && !item.owner}}" class="role-action" data-index="{{index}}" catchtap="toggleAdmin">{{item.role==='ADMIN'?'取消管理':'设为管理'}}</text></view>
   </view>
-  <view class="invite-bar">
-    <button class="invite-btn" open-type="share"><text class="invite-icon">＋</text><text>邀请朋友</text></button>
-    <view wx:if="{{group.joined && !group.owner}}" class="leave-btn" bindtap="leave">退出群聊</view>
-  </view>
+  <view wx:if="{{group.manager && requests.length}}" class="request-section"><view class="request-title">待审批（{{requests.length}}）</view><view wx:for="{{requests}}" wx:key="id" class="request-row"><image class="request-avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><view class="request-main"><text>{{item.applicantName}}</text><text>由 {{item.inviterName}} 邀请</text></view><view class="request-reject" data-id="{{item.id}}" data-action="reject" bindtap="handleRequest">拒绝</view><view class="request-approve" data-id="{{item.id}}" data-action="approve" bindtap="handleRequest">同意</view></view></view>
+  <view wx:if="{{group.joined && !group.owner}}" class="leave-row"><view class="leave-btn" bindtap="leave">退出群聊</view></view>
   <view wx:if="{{selectedMember}}" class="member-mask" bindtap="closeMember"><view class="member-card" catchtap="noop"><image class="profile-avatar" src="{{selectedMember.avatarSrc}}" mode="aspectFill"/><text class="profile-name">{{selectedMember.nickname}}</text><text wx:if="{{selectedMember.owner}}" class="owner-tag">群主</text><view wx:if="{{selectedMember.pets.length}}" class="profile-pets"><view wx:for="{{selectedMember.pets}}" wx:key="id" class="profile-pet"><image wx:if="{{item.avatarSrc}}" class="pet-avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><view wx:else class="pet-avatar pet-fallback">宠</view><view class="pet-data"><text class="pet-name">{{item.name}}</text><text class="pet-detail">{{item.genderName}} · {{item.breedName}}</text></view></view></view><text wx:else class="profile-tip">暂未添加宠物</text></view></view>
 </view>

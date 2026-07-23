@@ -18,4 +18,47 @@
     </view>
   </view>
   <view wx:if="{{!loading && places.length === 0}}" class="empty">你还没有上传地点。</view>
+
+  <view wx:if="{{showForm}}" class="upload-mask" bindtap="closeForm">
+    <view class="upload-sheet" catchtap="noop">
+      <view class="form-head">
+        <text class="form-title">{{editingId ? '编辑地点' : '新增地点'}}</text>
+        <text class="form-close" bindtap="closeForm">×</text>
+      </view>
+      <view class="field">
+        <text class="field-label">地点</text>
+        <view class="place-search-field">
+          <input class="place-search-input" value="{{placeSearchKeyword}}" placeholder="搜索地点或地址" bindinput="onPlaceSearchInput"/>
+          <view class="place-locate-btn" bindtap="useCurrentPoint">定位</view>
+        </view>
+        <view wx:if="{{placeSuggestions.length}}" class="suggestion-list">
+          <view wx:for="{{placeSuggestions}}" wx:key="index" class="suggestion-item" data-index="{{index}}" bindtap="choosePlaceSuggestion">
+            <text class="suggestion-name">{{item.name}}</text>
+            <text class="suggestion-address">{{item.address}}</text>
+          </view>
+        </view>
+        <text class="selected-address">{{form.address || '选择地点后自动填入地址和坐标'}}</text>
+      </view>
+      <view class="field">
+        <text class="field-label">类型</text>
+        <picker range="{{placeTypes}}" range-key="label" bindchange="onTypeChange"><view class="picker-shell">{{form.typeName || '散步'}}</view></picker>
+      </view>
+      <view class="field">
+        <text class="field-label">联系电话</text>
+        <input class="picker-shell" value="{{form.phone}}" placeholder="请输入联系电话" data-field="phone" bindinput="onFormInput"/>
+      </view>
+      <view class="field">
+        <text class="field-label">说明</text>
+        <textarea class="textarea" value="{{form.description}}" placeholder="停车、牵引、营业时间等" data-field="description" bindinput="onFormInput"/>
+      </view>
+      <view class="field">
+        <text class="field-label">标签</text>
+        <view wx:for="{{formTagGroups}}" wx:key="name" class="tag-group">
+          <text class="tag-group-title">{{item.name}}</text>
+          <view class="tag-options"><text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="name" class="pill {{tag.active ? 'active' : ''}}" data-tag="{{tag.name}}" bindtap="toggleTag">{{tag.name}}</text></view>
+        </view>
+      </view>
+      <view class="form-save {{saving ? 'disabled' : ''}}" bindtap="savePlace">{{saving ? '保存中…' : '保存'}}</view>
+    </view>
+  </view>
 </view>

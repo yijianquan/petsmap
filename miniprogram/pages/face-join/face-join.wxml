@@ -1,0 +1,17 @@
+<view class="page face-page">
+  <view class="face-hero">
+    <text class="face-title">{{groupId ? '和身边的人输入同样数字' : '输入现场的四位数字'}}</text>
+    <text class="face-copy">{{groupId ? '仅限发起人附近约 30 米，数字 5 分钟内有效' : '请先由群成员在群信息中发起，附近的人再输入相同数字'}}</text>
+    <view class="digit-row" bindtap="beginInput">
+      <view wx:for="{{digits}}" wx:key="index" class="digit">{{item}}</view>
+    </view>
+    <input wx:if="{{!groupId}}" class="code-input" type="number" maxlength="4" value="{{code}}" focus="{{inputFocus}}" bindinput="onCode"/>
+    <text wx:if="{{session}}" class="session-meta">{{session.groupName}} · {{session.placeName}} · {{remaining}}</text>
+  </view>
+  <view wx:if="{{!groupId && !session}}" class="enter-btn" bindtap="enter">进入</view>
+  <view wx:if="{{session}}" class="participant-card">
+    <view class="participant-head"><text>现场用户</text><text>{{participants.length}}</text></view>
+    <view class="avatar-grid"><view wx:for="{{participants}}" wx:key="id" class="participant"><image class="participant-avatar" src="{{item.avatarSrc}}" mode="aspectFill"/><text>{{item.nickname}}</text></view></view>
+    <view class="open-btn" bindtap="openGroup">查看群聊</view>
+  </view>
+</view>

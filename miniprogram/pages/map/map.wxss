@@ -2,7 +2,7 @@
   position: relative;
   height: 100vh;
   overflow: hidden;
-  background: #f4f1eb;
+  background: #ffffff;
 }
 
 .main-map {
@@ -35,7 +35,9 @@
 .search-box,
 .map-locate {
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 12rpx 32rpx rgba(20, 20, 20, 0.10);
+  border: 1rpx solid #dadce0;
+  box-shadow: 0 4rpx 12rpx rgba(60, 64, 67, 0.12);
+  box-sizing: border-box;
 }
 
 .city-pill {
@@ -43,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   color: #111111;
   font-size: 28rpx;
   font-weight: 800;
@@ -55,7 +57,7 @@
   align-items: center;
   min-width: 0;
   padding: 0 22rpx;
-  border-radius: 26rpx;
+  border-radius: 20rpx;
   box-sizing: border-box;
 }
 
@@ -111,7 +113,7 @@
   z-index: 6;
   padding: 10rpx 24rpx 18rpx;
   border-radius: 32rpx 32rpx 0 0;
-  background: #f7f4ee;
+  background: #ffffff;
   box-shadow: 0 -18rpx 50rpx rgba(20, 20, 20, 0.16);
   box-sizing: border-box;
   transition: height 0.2s ease;
@@ -194,6 +196,7 @@
   padding: 0 24rpx;
   margin-right: 12rpx;
   border-radius: 999rpx;
+  border: 1rpx solid #dadce0;
   background: #ffffff;
   color: #655e55;
   font-size: 25rpx;
@@ -202,7 +205,7 @@
 
 .filter-pill.active {
   font-weight: 900;
-  box-shadow: 0 8rpx 20rpx rgba(20, 20, 20, 0.06);
+  box-shadow: 0 8rpx 20rpx rgba(20, 20, 20, 0.14);
 }
 
 .place-scroll {

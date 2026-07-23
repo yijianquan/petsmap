@@ -79,11 +79,27 @@ CREATE TABLE IF NOT EXISTS walk_group_member (
     id BIGINT NOT NULL AUTO_INCREMENT,
     group_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
+    role VARCHAR(16) NOT NULL DEFAULT 'MEMBER',
     joined_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_walk_group_member (group_id, user_id),
     CONSTRAINT fk_walk_member_group FOREIGN KEY (group_id) REFERENCES walk_group(id) ON DELETE CASCADE,
     CONSTRAINT fk_walk_member_user FOREIGN KEY (user_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS walk_group_join_request (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    applicant_id BIGINT NOT NULL,
+    inviter_id BIGINT NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    created_at DATETIME NOT NULL,
+    handled_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_walk_join_request_group_status (group_id, status),
+    CONSTRAINT fk_walk_join_request_group FOREIGN KEY (group_id) REFERENCES walk_group(id) ON DELETE CASCADE,
+    CONSTRAINT fk_walk_join_request_applicant FOREIGN KEY (applicant_id) REFERENCES user_account(id),
+    CONSTRAINT fk_walk_join_request_inviter FOREIGN KEY (inviter_id) REFERENCES user_account(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS walk_group_message (

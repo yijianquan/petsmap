@@ -9,9 +9,11 @@
     "pages/place-groups/place-groups",
     "pages/walk-chat/walk-chat",
     "pages/walk-members/walk-members",
+    "pages/face-join/face-join",
     "pages/my-uploads/my-uploads",
     "pages/my-favorites/my-favorites",
     "pages/my-pets/my-pets",
+    "pages/my-groups/my-groups",
     "pages/login/login",
     "pages/mine/mine"
   ],
@@ -19,7 +21,7 @@
     "navigationBarTitleText": "宠趣行",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f1ea"
+    "backgroundColor": "#ffffff"
   },
   "tabBar": {
     "color": "#8a8177",

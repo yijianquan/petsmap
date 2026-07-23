@@ -4,6 +4,7 @@ import com.wujia.pet.entity.*;
 import com.wujia.pet.repository.*;
 import com.wujia.pet.service.MiniAppTokenService;
 import com.wujia.pet.service.MapSearchService;
+import com.wujia.pet.service.MiniAppRealtimeService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -24,11 +25,14 @@ public class WalkGroupController {
     private final MapSearchService mapSearchService;
     private final UserPetRepository userPetRepository;
     private final DictionaryItemRepository dictionaryItemRepository;
+    private final WalkGroupJoinRequestRepository joinRequestRepository;
+    private final MiniAppRealtimeService realtimeService;
 
     public WalkGroupController(WalkGroupRepository groupRepository, WalkGroupMemberRepository memberRepository,
             WalkGroupMessageRepository messageRepository, PetFriendlyPlaceRepository placeRepository,
             SysAreaRepository areaRepository, MiniAppTokenService tokenService, MapSearchService mapSearchService,
-            UserPetRepository userPetRepository, DictionaryItemRepository dictionaryItemRepository) {
+            UserPetRepository userPetRepository, DictionaryItemRepository dictionaryItemRepository,
+            WalkGroupJoinRequestRepository joinRequestRepository, MiniAppRealtimeService realtimeService) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.messageRepository = messageRepository;
@@ -38,6 +42,8 @@ public class WalkGroupController {
         this.mapSearchService = mapSearchService;
         this.userPetRepository = userPetRepository;
         this.dictionaryItemRepository = dictionaryItemRepository;
+        this.joinRequestRepository = joinRequestRepository;
+        this.realtimeService = realtimeService;
     }
 
     @GetMapping("/walk-groups")
@@ -56,6 +62,18 @@ public class WalkGroupController {
     @GetMapping("/walk-groups/{id}")
     public Map<String, Object> group(@RequestHeader(value = "X-Miniapp-Token", required = false) String token, @PathVariable Long id) {
         return groupDto(requireGroup(id), tokenService.optionalUser(token).orElse(null));
+    }
+
+    @GetMapping("/walk-groups/mine")
+    public Map<String, Object> myGroups(@RequestHeader(value = "X-Miniapp-Token", required = false) String token) {
+        UserAccount user = tokenService.requireUser(token);
+        List<Map<String, Object>> created = groupRepository.findByOwnerIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(group -> groupDto(group, user)).toList();
+        List<Map<String, Object>> joined = memberRepository.findByUserIdOrderByJoinedAtDesc(user.getId()).stream()
+                .map(WalkGroupMember::getGroup)
+                .filter(group -> !Objects.equals(group.getOwner().getId(), user.getId()))
+                .map(group -> groupDto(group, user)).toList();
+        return Map.of("created", created, "joined", joined);
     }
 
     @GetMapping("/places/{placeId}/walk-groups")
@@ -98,7 +116,7 @@ public class WalkGroupController {
         group.setName(name); group.setPlace(place); group.setOwner(user); group.setCityCode(place.getCityCode()); group.setCreatedAt(LocalDateTime.now());
         groupRepository.save(group);
         WalkGroupMember member = new WalkGroupMember();
-        member.setGroup(group); member.setUser(user); member.setJoinedAt(LocalDateTime.now());
+        member.setGroup(group); member.setUser(user); member.setRole("OWNER"); member.setJoinedAt(LocalDateTime.now());
         memberRepository.save(member);
         return groupDto(group, user);
     }
@@ -109,7 +127,7 @@ public class WalkGroupController {
         UserAccount user = tokenService.requireUser(token);
         WalkGroup group = requireGroup(id);
         if (!memberRepository.existsByGroupIdAndUserId(id, user.getId())) {
-            WalkGroupMember member = new WalkGroupMember(); member.setGroup(group); member.setUser(user); member.setJoinedAt(LocalDateTime.now());
+            WalkGroupMember member = new WalkGroupMember(); member.setGroup(group); member.setUser(user); member.setRole("MEMBER"); member.setJoinedAt(LocalDateTime.now());
             memberRepository.save(member);
         }
         return groupDto(group, user);
@@ -139,7 +157,7 @@ public class WalkGroupController {
     @Transactional
     public Map<String, Object> dissolve(@RequestHeader(value = "X-Miniapp-Token", required = false) String token, @PathVariable Long id) {
         UserAccount user = tokenService.requireUser(token); WalkGroup group = requireOwner(id, user);
-        messageRepository.deleteByGroupId(id); memberRepository.deleteByGroupId(id); groupRepository.delete(group);
+        messageRepository.deleteByGroupId(id); joinRequestRepository.deleteByGroupId(id); memberRepository.deleteByGroupId(id); groupRepository.delete(group);
         return Map.of("success", true);
     }
 
@@ -168,7 +186,7 @@ public class WalkGroupController {
         String content = clean(request == null ? "" : request.content());
         if (content.isBlank() || content.length() > 500) throw new IllegalArgumentException("消息请控制在 1-500 个字符。");
         WalkGroupMessage message = new WalkGroupMessage(); message.setGroup(group); message.setSender(user); message.setContent(content); message.setCreatedAt(LocalDateTime.now());
-        return messageDto(messageRepository.save(message), user);
+        Map<String,Object> dto=messageDto(messageRepository.save(message), user);realtimeService.group(id,"chat.message",dto);return dto;
     }
 
     private WalkGroup requireGroup(Long id) { return groupRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("群聊不存在或已解散。")); }
@@ -190,9 +208,12 @@ public class WalkGroupController {
         dto.put("memberCount", count); dto.put("ownerId", group.getOwner().getId()); dto.put("ownerName", displayName(group.getOwner()));
         dto.put("joined", user != null && memberRepository.existsByGroupIdAndUserId(group.getId(), user.getId()));
         dto.put("owner", user != null && Objects.equals(group.getOwner().getId(), user.getId()));
+        WalkGroupMember viewer=user==null?null:memberRepository.findByGroupIdAndUserId(group.getId(),user.getId()).orElse(null);
+        boolean manager=user!=null&&(Objects.equals(group.getOwner().getId(),user.getId())||(viewer!=null&&"ADMIN".equals(viewer.getRole())));
+        dto.put("manager",manager);dto.put("pendingCount",manager?joinRequestRepository.countByGroupIdAndStatus(group.getId(),"PENDING"):0);
         return dto;
     }
-    private Map<String, Object> memberDto(WalkGroupMember member, WalkGroup group) { UserAccount user = member.getUser(); Map<String,Object> dto=new LinkedHashMap<>();dto.put("id",user.getId());dto.put("nickname",displayName(user));dto.put("avatarUrl",avatarUrl(user));dto.put("owner",Objects.equals(group.getOwner().getId(),user.getId()));dto.put("pets",userPetRepository.findByOwnerIdOrderByIdDesc(user.getId()).stream().map(this::petDto).toList());return dto; }
+    private Map<String, Object> memberDto(WalkGroupMember member, WalkGroup group) { UserAccount user = member.getUser(); Map<String,Object> dto=new LinkedHashMap<>();boolean owner=Objects.equals(group.getOwner().getId(),user.getId());dto.put("id",user.getId());dto.put("nickname",displayName(user));dto.put("avatarUrl",avatarUrl(user));dto.put("owner",owner);dto.put("role",owner?"OWNER":"ADMIN".equals(member.getRole())?"ADMIN":"MEMBER");dto.put("pets",userPetRepository.findByOwnerIdOrderByIdDesc(user.getId()).stream().map(this::petDto).toList());return dto; }
     private Map<String,Object> petDto(UserPet pet){Map<String,Object> dto=new LinkedHashMap<>();dto.put("id",pet.getId());dto.put("name",pet.getName());dto.put("species",pet.getSpecies());dto.put("breedName",dictLabel("PET_BREED",pet.getBreedCode()));dto.put("genderName",dictLabel("PET_GENDER",pet.getGenderCode()));dto.put("avatarUrl",pet.hasAvatarData()?"/miniapp/api/pets/"+pet.getId()+"/avatar":"");return dto;}
     private String dictLabel(String type,String code){return dictionaryItemRepository.findByDictTypeAndItemCode(type,code).map(DictionaryItem::getLabel).orElse(code);}
     private Map<String, Object> messageDto(WalkGroupMessage message, UserAccount viewer) { UserAccount sender = message.getSender(); Map<String,Object> dto = new LinkedHashMap<>(); dto.put("id", message.getId()); dto.put("content", message.getContent()); dto.put("createdAt", message.getCreatedAt().format(TIME_FORMAT)); dto.put("senderId", sender.getId()); dto.put("senderName", displayName(sender)); dto.put("avatarUrl", avatarUrl(sender)); dto.put("mine", viewer != null && Objects.equals(sender.getId(), viewer.getId())); return dto; }

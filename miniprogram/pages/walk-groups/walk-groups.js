@@ -1,17 +1,18 @@
-const { request, asList } = require("../../utils/request");
+const { request, asList, ensureLogin } = require("../../utils/request");
 
 Page({
   data: { city: "上海市", cityCode: "", keyword: "", groups: [], loading: true, userLatitude: null, userLongitude: null },
   onShow() {
     this.setData({
       city: wx.getStorageSync("selectedCity") || "上海市",
-      cityCode: wx.getStorageSync("selectedCityCode") || ""
+      cityCode: ""
     });
     this.refreshLocation().finally(() => this.loadGroups());
   },
   openCity() { wx.navigateTo({ url: `/pages/city/city?city=${encodeURIComponent(this.data.city)}` }); },
   onSearch(event) { this.setData({ keyword: event.detail.value || "" }); },
   search() { this.loadGroups(); },
+  openFaceJoin() { if (ensureLogin()) wx.navigateTo({ url: "/pages/face-join/face-join" }); },
   async loadGroups() {
     this.setData({ loading: true });
     try {

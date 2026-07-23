@@ -28,7 +28,7 @@ function request(options) {
         if (message.includes("请先登录")) {
           clearLogin();
         }
-        wx.showToast({ title: message, icon: "none" });
+        if (!options.silent) wx.showToast({ title: message, icon: "none" });
         reject(new Error(message));
       },
       fail(error) {

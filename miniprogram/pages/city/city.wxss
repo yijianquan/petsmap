@@ -7,7 +7,9 @@
   padding: 0 24rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 12rpx 32rpx rgba(20, 20, 20, 0.055);
+  border: 1rpx solid #dadce0;
+  box-shadow: 0 2rpx 8rpx rgba(60, 64, 67, 0.08);
+  box-sizing: border-box;
 }
 
 .city-search input { flex: 1; font-size: 26rpx; }

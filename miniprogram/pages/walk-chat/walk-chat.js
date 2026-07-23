@@ -1,4 +1,5 @@
 const { request, asList, baseUrl, isLoggedIn, ensureLogin } = require("../../utils/request");
+const realtime = require("../../utils/realtime");
 
 Page({
   data: { id: null, name: "", distanceText: "", invited: false, group: {}, messages: [], content: "", scrollIntoView: "", showManage: false, renameValue: "", selectedMember: null, baseUrl: "" },
@@ -11,6 +12,8 @@ Page({
       return;
     }
     this.setData({ id: Number(options.id), name: decode(options.name), distanceText: decode(options.distance), invited, baseUrl: baseUrl() });
+    this.offRealtime = realtime.on(event => { if (event.type === "chat.message") this.loadMessages(true); if (event.type === "group.memberJoined") this.loadGroup(); });
+    realtime.connect(); realtime.watchGroup(Number(options.id));
     this.updateTitle();
   },
   async onShow() {
@@ -21,7 +24,7 @@ Page({
       this.timer = setInterval(() => this.loadMessages(true), 3000);
     } finally { this.initializing = false; }
   },
-  onHide() { this.stopTimer(); }, onUnload() { this.stopTimer(); }, stopTimer() { if (this.timer) clearInterval(this.timer); this.timer = null; },
+  onHide() { this.stopTimer(); }, onUnload() { this.stopTimer(); if(this.offRealtime)this.offRealtime(); }, stopTimer() { if (this.timer) clearInterval(this.timer); this.timer = null; },
   async loadGroup() {
     const group = await request({ url: `/miniapp/api/walk-groups/${this.data.id}` });
     this.setData({ group, name: group.name });
@@ -68,7 +71,7 @@ Page({
   },
   updateTitle() {
     const count = this.data.group && this.data.group.memberCount;
-    wx.setNavigationBarTitle({ title: `${this.data.name || "群聊"}${count == null ? "" : `  ${count}人`}` });
+    wx.setNavigationBarTitle({ title: `${this.data.name || "群聊"}${count == null ? "" : ` (${count})`}` });
   },
   resolveDistance(group) { wx.getLocation({ type: "gcj02", success: res => { const distanceText = formatDistance(res.latitude, res.longitude, group.latitude, group.longitude); this.setData({ distanceText }); this.updateTitle(); } }); },
   dissolve() { wx.showModal({ title: "解散群聊", content: "群聊和全部历史消息将被删除，且无法恢复。", confirmColor: "#d64545", success: async res => { if (!res.confirm) return; await request({ url: `/miniapp/api/walk-groups/${this.data.id}`, method: "DELETE" }); wx.navigateBack({ delta: 2 }); } }); }

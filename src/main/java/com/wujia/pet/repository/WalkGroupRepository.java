@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface WalkGroupRepository extends JpaRepository<WalkGroup, Long> {
+    List<WalkGroup> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
     List<WalkGroup> findByCityCodeAndNameContainingIgnoreCase(String cityCode, String name);
     List<WalkGroup> findByPlaceId(Long placeId);
     boolean existsByPlaceIdAndNameIgnoreCase(Long placeId, String name);

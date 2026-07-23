@@ -3,14 +3,14 @@ const { request, ensureLogin, baseUrl, asList } = require("../../utils/request")
 const defaultLocation = { latitude: 31.2304, longitude: 121.4737, label: "默认位置：上海" };
 const defaultCityLocation = { name: "上海市", latitude: defaultLocation.latitude, longitude: defaultLocation.longitude };
 const markerIcons = {
-  RESTAURANT: "./marker-restaurant.png",
-  MALL: "./marker-mall-pink.png",
-  HOTEL: "./marker-hotel.png",
-  PARK: "./marker-park.png",
-  SCENIC: "./marker-park.png",
-  LAWN: "./marker-park.png",
-  PET_STORE: "./marker-pet-store.png",
-  HOSPITAL: "./marker-hospital.png"
+  RESTAURANT: "./marker-restaurant-circle.png",
+  MALL: "./marker-mall-pink-circle.png",
+  HOTEL: "./marker-hotel-circle.png",
+  PARK: "./marker-park-circle.png",
+  SCENIC: "./marker-park-circle.png",
+  LAWN: "./marker-park-circle.png",
+  PET_STORE: "./marker-pet-store-circle.png",
+  HOSPITAL: "./marker-hospital-circle.png"
 };
 const typeColors = {
   RESTAURANT: "#F28C28",
@@ -171,15 +171,18 @@ Page({
       type: "gcj02",
       success: async (res) => {
         let city = this.data.city;
+        let cityCode = "";
         try {
           const reverse = await request({
             url: `/miniapp/api/map/reverse?latitude=${encodeURIComponent(res.latitude)}&longitude=${encodeURIComponent(res.longitude)}`
           });
           city = reverse.cityName || city;
+          cityCode = reverse.cityCode || "";
         } catch (error) {
           // Keep the selected city if reverse geocoding is temporarily unavailable.
         }
         wx.setStorageSync("selectedCity", city);
+        wx.setStorageSync("selectedCityCode", cityCode);
         wx.setStorageSync("selectedCityLocation", {
           name: city,
           latitude: res.latitude,
@@ -202,6 +205,7 @@ Page({
           return;
         }
         wx.setStorageSync("selectedCity", "上海市");
+        wx.removeStorageSync("selectedCityCode");
         wx.setStorageSync("selectedCityLocation", defaultCityLocation);
         this.setData({
           city: "上海市",
@@ -310,10 +314,10 @@ Page({
           latitude: place.latitude,
           longitude: place.longitude,
           title: place.name,
-          iconPath: markerIcons[place.type] || "./marker-default.png",
-          width: 43,
-          height: 43,
-          anchor: { x: 0.5, y: 1 },
+          iconPath: markerIcons[place.type] || "./marker-default-circle.png",
+          width: 22,
+          height: 22,
+          anchor: { x: 0.5, y: 0.5 },
           callout: {
             content: place.name,
             display: Number(place.id) === Number(this.data.selectedPlaceId) ? "ALWAYS" : "BYCLICK",
@@ -468,7 +472,7 @@ Page({
     if (!place) return;
     this.setData({
       showForm: true,
-      editingId: id,
+      editingId: Number(place.id),
       placeSearchKeyword: place.name || "",
       placeSuggestions: [],
       form: {

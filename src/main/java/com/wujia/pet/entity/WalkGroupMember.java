@@ -14,6 +14,8 @@ public class WalkGroupMember {
     private UserAccount user;
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
+    @Column(nullable = false, length = 16, columnDefinition = "varchar(16) default 'MEMBER'")
+    private String role = "MEMBER";
 
     public Long getId() { return id; }
     public WalkGroup getGroup() { return group; }
@@ -22,4 +24,6 @@ public class WalkGroupMember {
     public void setUser(UserAccount user) { this.user = user; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 }

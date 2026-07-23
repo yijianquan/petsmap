@@ -24,6 +24,10 @@
         <text class="feature-icon">♥</text>
         <text>我的宠物</text>
       </view>
+      <view class="feature-button" data-page="my-groups" bindtap="openFeature">
+        <text class="feature-icon">♧</text>
+        <text>我的群聊</text>
+      </view>
     </view>
 
     <view class="logout-btn" bindtap="logout">退出登录</view>
@@ -32,7 +36,6 @@
   <view wx:if="{{showProfileEditor}}" class="sheet-mask" bindtap="closeProfileEditor">
     <view class="sheet" catchtap="noop">
       <view class="row between">
-        <text class="sheet-title">编辑资料</text>
         <text class="close" bindtap="closeProfileEditor">×</text>
       </view>
       <button class="editor-avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
@@ -43,7 +46,7 @@
         <text class="field-label">昵称</text>
         <input class="input profile-input" type="nickname" value="{{profileForm.nickname}}" placeholder="填写微信昵称" bindinput="onNicknameInput" />
       </view>
-      <view class="primary-save" bindtap="saveProfile">保存资料</view>
+      <view class="primary-save" bindtap="saveProfile">保存</view>
     </view>
   </view>
 </view>

@@ -3,6 +3,12 @@
     <view class="city-pill" bindtap="openCity">{{city}}</view>
     <view class="search-shell"><input value="{{keyword}}" placeholder="搜索当前城市的群聊" bindinput="onSearch" confirm-type="search" bindconfirm="search" /><view class="search-btn" bindtap="search">搜索</view></view>
   </view>
+  <view class="walk-tools">
+    <view class="walk-tool" bindtap="openFaceJoin">
+      <view class="face-tool-icon"><view class="face-dot"></view><view class="face-dot"></view><view class="face-dot"></view><view class="face-dot"></view></view>
+      <text>面对面进群</text>
+    </view>
+  </view>
   <view wx:for="{{groups}}" wx:key="id" class="group-card" data-index="{{index}}" bindtap="handleGroup">
     <view class="group-main">
       <view class="group-title-row"><text class="group-name">{{item.name}}</text><text class="member-count">{{item.memberCount}} 人</text></view>

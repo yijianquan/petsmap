@@ -19,9 +19,8 @@
   <view class="composer"><input value="{{content}}" disabled="{{!group.joined}}" maxlength="500" placeholder="{{group.joined ? '说点什么...' : '加入群聊后可以发消息'}}" bindinput="onContent" confirm-type="send" bindconfirm="send" /><view class="send-btn {{!group.joined ? 'disabled' : ''}}" bindtap="send">发送</view></view>
   <view wx:if="{{showManage}}" class="sheet-mask" bindtap="closeManage">
     <view class="sheet" catchtap="noop">
-      <text class="sheet-title">群聊管理</text>
-      <input class="name-input" value="{{renameValue}}" maxlength="40" bindinput="onRename"/>
-      <view class="save-btn" bindtap="rename">保存群名</view>
+      <text class="sheet-title">管理</text>
+      <view class="manage-name-row"><input class="name-input" value="{{renameValue}}" maxlength="40" bindinput="onRename"/><view class="inline-save-btn" bindtap="rename">保存</view></view>
       <view class="danger-btn" style="padding:14rpx 20rpx;border-radius:18rpx;font-size:24rpx;" bindtap="dissolve">解散群聊</view>
     </view>
   </view>

@@ -1,0 +1,16 @@
+<view class="page groups-page">
+  <view class="section">
+    <view class="section-head"><text class="section-title">创建的群聊</text><text class="section-count">（{{created.length}}）</text></view>
+    <view wx:for="{{created}}" wx:key="id" class="group-row" data-group="{{item}}" bindtap="openGroup">
+      <view class="group-main"><view class="name-row"><text class="group-name">{{item.name}}</text><text class="member-count">({{item.memberCount}})</text></view><text class="place-name">{{item.placeName}}</text></view><text class="arrow">›</text>
+    </view>
+    <view wx:if="{{!loading && !created.length}}" class="empty"></view>
+  </view>
+  <view class="section joined-section">
+    <view class="section-head"><text class="section-title">加入的群聊</text><text class="section-count">（{{joined.length}}）</text></view>
+    <view wx:for="{{joined}}" wx:key="id" class="group-row" data-group="{{item}}" bindtap="openGroup">
+      <view class="group-main"><view class="name-row"><text class="group-name">{{item.name}}</text><text class="member-count">({{item.memberCount}})</text></view><text class="place-name">{{item.placeName}}</text></view><text class="arrow">›</text>
+    </view>
+    <view wx:if="{{!loading && !joined.length}}" class="empty"></view>
+  </view>
+</view>

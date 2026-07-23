@@ -10,5 +10,6 @@ public interface WalkGroupMemberRepository extends JpaRepository<WalkGroupMember
     boolean existsByGroupIdAndUserId(Long groupId, Long userId);
     Optional<WalkGroupMember> findByGroupIdAndUserId(Long groupId, Long userId);
     List<WalkGroupMember> findByGroupIdOrderByJoinedAtAsc(Long groupId);
+    List<WalkGroupMember> findByUserIdOrderByJoinedAtDesc(Long userId);
     void deleteByGroupId(Long groupId);
 }
